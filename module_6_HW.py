@@ -6,7 +6,7 @@ from sys import argv, exit
 
 folder_to_sort = ''
 
-IGNORE = ['images', 'documents', 'audio', 'video', 'archives']
+IGNORE = ['images', 'documents', 'audio', 'video', 'archives', 'unknown']
 
 extensions_dict = {
     'video' : ['AVI', 'MP4', 'MOV', 'MKV'],
@@ -171,6 +171,9 @@ def process_file(path):
     """Does main sorting stuff"""
     file_name = path.rsplit(os.path.sep, maxsplit=1)[1]
     file_dir = path.rsplit(os.path.sep, maxsplit=1)[0]
+    
+    good_file = True # non zero length archive flag
+    
     if len(file_name.split('.')) == 1:
         extension = ''
         pure_name = file_name
@@ -184,20 +187,22 @@ def process_file(path):
             os.rename(path, new_path)
             path = new_path
             file_name = new_path.rsplit(os.path.sep, maxsplit=1)[1]
-    if category != 'unknown':
-        dest_path = os.path.join(folder_to_sort,f'{category}{os.path.sep}{file_name}')
-        if category == 'archives':
-            dest_path = dest_path.rsplit(".", maxsplit=1)[0]
-            try:
-                shutil.unpack_archive(path, dest_path)
-            except:
-                print(f'Warning: {path} is a wrong archive file and will be removed.')
-            os.remove(path)
-        else:
-            shutil.move(path, dest_path)
+    # if category != 'unknown':
+    dest_path = os.path.join(folder_to_sort,f'{category}{os.path.sep}{file_name}')
+    if category == 'archives':
+        dest_path = dest_path.rsplit(".", maxsplit=1)[0]
+        try:
+            shutil.unpack_archive(path, dest_path)
+        except:
+            print(f'Warning: {path} is a wrong archive file and will be removed.')
+            good_file = False # bad archive is deleted and does not go to statistic
+        os.remove(path)
     else:
-        file_name = path
-    add_stat(category, file_name, extension.upper())
+        shutil.move(path, dest_path)
+    # else:
+    #     file_name = path
+    if good_file: # bad archive is deleted and does not go to statistic
+        add_stat(category, file_name, extension.upper())
    
 
 def walk_tree(root_path):
@@ -279,7 +284,7 @@ def main():
         exit(1)
     
     args_lst = argv[1].split(' ')
-    folder_to_sort = args_lst[0]
+    folder_to_sort = argv[1]
     
     if not os.path.exists(folder_to_sort) or os.path.isfile(folder_to_sort):
         usage(folder_to_sort)
@@ -289,21 +294,21 @@ def main():
     extensions_dict['archives'], stat_dict['archives'] = get_archives_types()
 
     #Making verbose pattern
-    if len(args_lst) > 1:
-        if args_lst[1] == '-v':
-            if len(args_lst) == 2:
+    if len(argv) > 2:
+        if argv[2] == '-v':
+            if len(argv) == 3:
                 print('Warning: wrong parameters are passed to -v argument. Verbose output is set to full.')
-            else:
-                verbose_pattern = set(re.findall(RE_VERB_PATTERN, args_lst[2]))
+            elif len(argv) >=4:
+                verbose_pattern = set(re.findall(RE_VERB_PATTERN, argv[3]))
                 if len(verbose_pattern) == 0:
                     print('Warning: wrong parameters are passed to -v argument. Verbose output is set to full.')
                     verbose_pattern = set('avdizu')
-                if args_lst[2] == '*':
+                if argv[3] == '*':
                     verbose_pattern = set('avdizu')
                 if len(verbose_pattern) >= 2 and '*' in verbose_pattern:
                     print('Warning: "*" overrides other passed parameters  to -v argument. Verbose output is set to full.')
                     verbose_pattern = set('avdizu')
-        if '-v' not in args_lst:
+        if '-v' not in argv:
             verbose_pattern = set('_')
         
     #Creating initial folder structure
