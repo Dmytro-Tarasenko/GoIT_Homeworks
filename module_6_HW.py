@@ -272,7 +272,7 @@ def show_stat():
         title_str = f'There {is_are} {cat_num} {typestr} in {os.path.join(folder_to_sort,record)}:' if record != 'unknown' else f'There {is_are} {cat_num} {typestr}:'
         print(title_str, buff)
         all_n += cat_num
-    print(f'Total: {all_n} files`ve been processed.')  
+    print(f'Total: {all_n} files`ve been showed.')  
 
 def main():
     global verbose_pattern
