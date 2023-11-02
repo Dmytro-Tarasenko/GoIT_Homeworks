@@ -283,7 +283,6 @@ def main():
         usage()
         exit(1)
     
-    args_lst = argv[1].split(' ')
     folder_to_sort = argv[1]
     
     if not os.path.exists(folder_to_sort) or os.path.isfile(folder_to_sort):
