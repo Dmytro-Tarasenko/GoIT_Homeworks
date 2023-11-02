@@ -1,7 +1,7 @@
 import os
 import shutil
 import re
-from sys import argv
+from sys import argv, exit
 #import pathlib не дозволяє показати отримані навички роботи зі строками та т.ін)))
 
 folder_to_sort = ''
@@ -185,9 +185,13 @@ def process_file(path):
             path = new_path
             file_name = new_path.rsplit(os.path.sep, maxsplit=1)[1]
     if category != 'unknown':
-        dest_path = os.path.join(folder_to_sort,f'{category}{os.path.sep}{file_name.rsplit(".", maxsplit=1)[0]}')
+        dest_path = os.path.join(folder_to_sort,f'{category}{os.path.sep}{file_name}')
         if category == 'archives':
-            shutil.unpack_archive(path, dest_path)
+            dest_path = dest_path.rsplit(".", maxsplit=1)[0]
+            try:
+                shutil.unpack_archive(path, dest_path)
+            except:
+                print(f'Warning: {path} is a wrong archive file and will be removed.')
             os.remove(path)
         else:
             shutil.move(path, dest_path)
@@ -200,8 +204,8 @@ def walk_tree(root_path):
     """Name says everything"""
     cd_list = os.listdir(root_path)
 
-    if len(cd_list) == 0:
-        os.rmdir(root_path)
+    # if len(cd_list) == 0:
+    #     os.rmdir(root_path)
     for item_ in cd_list:
         full_path = os.path.join(root_path, item_)
         if os.path.isfile(full_path):
@@ -220,17 +224,18 @@ def show_stat():
     for record in list(stat_dict):
         typestr = f'{record}' if record.endswith('s') else f'{record} files' 
         cat_num = 0
-        buff = ''
+        buff = '\n'
         for extension in list(stat_dict[record]):
             additive = stat_dict[record][extension]['quant']
             file_s = 'file' if additive == 1 else 'files' #plural 's'
             if additive == 0: 
                     continue
             cat_num += additive
-            buff += f'\t{additive} {extension} {file_s}:\n'
+            buff += f'\n{additive} {extension} {file_s}: '
             numerator = 1
             for file_name in stat_dict[record][extension]['list']:
-                buff += f'\t\t{numerator}. {file_name}\n'
+                gap = len(f'{additive} {extension} {file_s}: ') + 1
+                buff = (buff + f'{numerator}. {file_name}\n') if numerator == 1 else (buff + f'{numerator:>{gap}}. {file_name}\n') 
                 numerator += 1
         
         #no files no moves      
@@ -259,7 +264,7 @@ def show_stat():
 
         is_are = 'is' if cat_num == 1 else 'are'
         typestr = typestr if cat_num != 1 else typestr.removesuffix('s') #not plural no 's'
-        title_str = f'There {is_are} {cat_num} {typestr} in {os.path.join(folder_to_sort,record)}:\n' if record != 'unknown' else f'There {is_are} {cat_num} {typestr}:\n'
+        title_str = f'There {is_are} {cat_num} {typestr} in {os.path.join(folder_to_sort,record)}:' if record != 'unknown' else f'There {is_are} {cat_num} {typestr}:'
         print(title_str, buff)
         all_n += cat_num
     print(f'Total: {all_n} files`ve been processed.')  
@@ -271,14 +276,14 @@ def main():
     #Have we got a proper argument
     if len(argv) == 1:
         usage()
-        exit(0)
+        exit(1)
     
     args_lst = argv[1].split(' ')
     folder_to_sort = args_lst[0]
     
     if not os.path.exists(folder_to_sort) or os.path.isfile(folder_to_sort):
         usage(folder_to_sort)
-        exit(0)
+        exit(1)
     
     #Retrieve archive types registered in shutil
     extensions_dict['archives'], stat_dict['archives'] = get_archives_types()
