@@ -114,7 +114,7 @@ def usage(bad_param=''):
     print(f'\t{"z":<10} for archive files')
     print(f'\t{"u":<10} for unknown files')
     print(f'\t{"*":<10} for all files, default value fo -v')
-    print(f'\texample: "-v adu" means display filenames for audio files, documents and unknown files')
+    print(f'\texample: "-v adu" means display statistics for audio files, documents and unknown files')
     
 
 def get_archives_types():
