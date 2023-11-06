@@ -24,7 +24,7 @@ def get_birthdays_per_week(users):
             day_of_week = day_of_week if day_of_week in users_bd.keys() else 'Monday'
             users_bd[day_of_week].append(user['name'].split(' ')[0])
 
-        if -359 <= delta.days < 0:
+        if -365 <= delta.days < -358:
             bd_to_be = datetime(date.today().year+1, user['birthday'].month, user['birthday'].day).date()
             delta = bd_to_be - cur_date
             if 0 <= delta.days <= 6:
