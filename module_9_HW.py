@@ -18,14 +18,14 @@ HEADER = r"""
 """
 
 BYE = r"""
-   _____                 _   ____             _ 
+   _____                 _   ____             _
   / ____|               | | |  _ \           | |
  | |  __  ___   ___   __| | | |_) |_   _  ___| |
  | | |_ |/ _ \ / _ \ / _` | |  _ <| | | |/ _ \ |
  | |__| | (_) | (_) | (_| | | |_) | |_| |  __/_|
   \_____|\___/ \___/ \__,_| |____/ \__, |\___(_)
-                                    __/ |       
-                                   |___/        
+                                    __/ |
+                                   |___/
 """
 
 GREETING_MSG = 'How can I help you?'
@@ -58,14 +58,16 @@ def input_error(handler):
             match handler.__name__:
                 # Key error in add - contact allready exist
                 case 'add':
-                    error += 'Contact`ve been already recorded. Try another name.'\
+                    error += ('Contact`ve been already recorded.',
+                              + ' Try another name.')\
                         if 'contact_exists' in str(ke.args) \
                         else 'Unhandled KeyError raised while adding contact.'
                 # KeyError in change | phone - contact does not exist
                 case 'change' | 'phone':
                     error += 'Contact does not exist. Try another name.' \
                         if '!contact_exists' in str(ke.args) \
-                        else f'Unhandled KeyError raised in {handler.__name__}.'
+                        else ('Unhandled KeyError raised in'
+                              + f' {handler.__name__}.')
                 case _:
                     error += f'Unhandled KeyError in {handler.__name__}'
         except ValueError as ve:
@@ -74,7 +76,7 @@ def input_error(handler):
                 case 'add' | 'change' | 'phone':
                     if 'no_contact_number' in str(ve.args):
                         error += ('Provide valid contact name\\'
-                                  +'phone number to proceed\n')
+                                  + 'phone number to proceed\n')
                     if 'no_contact' in str(ve.args):
                         error += ('Provide contact name to proceed\n')
                     if 'no_number' in str(ve.args):
@@ -85,9 +87,9 @@ def input_error(handler):
                         error += 'Provided contact name is not valid\n'
                     if 'contact_or_phone_mis' in str(ve.args):
                         error += ('Both contact name and phone number'
-                                  +' are needed to proceed\n')
+                                  + ' are needed to proceed\n')
                     error += (f'Type "help {handler.__name__}"'
-                              +' for detailed info')
+                              + ' for detailed info')
                 case _:
                     error = f'Unhandled KeyError in {handler.__name__}'
         except IndexError as ie:
@@ -95,8 +97,8 @@ def input_error(handler):
                 case 'show_all':
                     if 'empty_list' in str(ie.args):
                         error += ('Nothing to show -'
-                                  +' contacts base got no records.\n'
-                                  +'Try to fill it first.')
+                                  + ' contacts base got no records.\n'
+                                  + 'Try to fill it first.')
                 case _:
                     error = f'Unhandled IndexError in {handler.__name__}'
         finally:
@@ -146,8 +148,8 @@ def _is_user(user_=''):
 def _check_number(phone_=''):
     """Validates phone number"""
     error = ''
-
-    phone_pattern = r'\d{12}|\d{10}|\d{7}|\d{6}'  # phones with 6, 7, 10 or 12 digits are acceptable
+    # phones with 6, 7, 10 or 12 digits are acceptable
+    phone_pattern = r'\d{12}|\d{10}|\d{7}|\d{6}'
     phone_match = re.match(phone_pattern, phone_)
     if not phone_match or phone_match.group() != phone_:
         error += 'wrong_number|'
@@ -241,14 +243,14 @@ def show_all():
         raise IndexError(error)
 
     header = (f'+{"=":=^15}+{"=":=^15}+\n'
-              +f'|{"CONTACT NAME":^15}|{"PHONE NUMBER":^15}|\n'
-              +f'+{"-":-^15}+{"-":-^15}+\n')
+              + f'|{"CONTACT NAME":^15}|{"PHONE NUMBER":^15}|\n'
+              + f'+{"-":-^15}+{"-":-^15}+\n')
     footer = f'+{"-":-^15}+{"-":-^15}+\n'
     message += header
 
     for name, number in contacts.items():
         name = name if len(name) < 12 else name[:12]+'...'
-        message += (f'|{name:^15}|{number:^15}|\n'
+        message += (f'|{name.capitalize():^15}|{number:^15}|\n'
                     + footer)
 
     return status, message
@@ -266,61 +268,71 @@ def exit():
 
 def help(command=''):
     """Prints help"""
+    cmd_ = command
+
     status = None
 
     alias_str = ', '.join(ALIASES[command]) if command in ALIASES else ''
     alias_str = f'alias(es) for {command} is(are): {alias_str}' \
         if alias_str else ''
 
+    for com, aliases in ALIASES.items():
+        if cmd_ in aliases:
+            command = com
+            alias_str = f'Is alias for {command}'
+            break
+
     message = 'Usage: '
     match command:
         case 'add':
-            message += f'add <contact_name> <phone_number>\n{alias_str}\n'
+            message += f'{cmd_} <contact_name> <phone_number>\n{alias_str}\n'
             message += ('Adds  contact with name <contact_name>'
                         + ' and phone number <phone_number> to contact base.\n'
                         + '<conact_name> contains only one word and'
                         + ' <phone_number> - only digits,'
-                        +' phones with 6, 7, 10 or 12 digits are acceptable')
+                        + ' phones with 6, 7, 10 or 12 digits are acceptable')
         case 'exit':
-            message += f'exit\n{alias_str}\n'
+            message += f'{cmd_}\n{alias_str}\n'
             message += 'Prints farewell message and exits'
         case 'show':
-            message += f'show\n{alias_str}\n'
+            message += f'{cmd_}\n{alias_str}\n'
             message += 'Shows all recorded contacts'
         case 'hello':
-            message += f'hello\n{alias_str}\n'
+            message += f'{cmd_}\n{alias_str}\n'
             message += 'Shows greeting message'
         case 'change':
-            message += f'change <contact_name> <phone_number>\n{alias_str}'
+            message += f'{cmd_} <contact_name> <phone_number>\n{alias_str}\n'
             message += ('Changes recorded phone number of <contact_name>'
                         + ' to  <phone_number>.\n'
                         + '<conact_name> contains only one word and'
                         + ' <phone_number> - only digits,'
                         + ' phones with 6, 7, 10 or 12 digits are acceptable')
         case 'phone':
-            message += f'phone <contact_name>\n{alias_str}'
+            message += f'{cmd_} <contact_name>\n{alias_str}\n'
             message += ('Shows recorded phone number for <contact_name>\n'
-                        +'<conact_name> contains only one word')
+                        + '<conact_name> contains only one word')
         case 'help':
-            message += f'help <command>\n{alias_str}'
+            message += f'{cmd_} <command>\n{alias_str}\n'
             message += ('Displays help info for <command>'
-                        +' and its aliases.\n'
-                        +'List of available commands: hello, add,'
-                        +' change, phone, show, exit, help.\n')
+                        + ' and its aliases.\n'
+                        + 'List of available commands: hello, add,'
+                        + ' change, phone, show, exit, help.\n')
         case _:
             message += '<command> [<parameters>]\n'
             message += ('Bot provides a storage for contacts.'
-                        +' Common operations such as adding, changing,\n'
-                        +' showing contact`s info etc are supported.\n'
-                        +'List of available commands: hello, add,'
-                        +' change, phone, show, exit, help.\n'
-                        +'Type "help <command> for details')
+                        + ' Common operations such as adding, changing,\n'
+                        + ' showing contact`s info etc are supported.\n'
+                        + 'List of available commands: hello, add,'
+                        + ' change, phone, show, exit, help.\n'
+                        + 'Type "help <command> for details')
 
     return status, message
 
 
 def parse_input_():
-    """Preparative part of parse_input - saving state for quick_access_aliases"""
+    """Preparative part of parse_input - saving state
+    for quick_access_aliases
+    """
     quick_access_aliases = {}
     for command, alias_lst in ALIASES.items():
         quick_access_aliases.update({alias: command for alias in alias_lst})
@@ -328,7 +340,6 @@ def parse_input_():
     appendix = [ALIASES[i][j] for i in ALIASES
                 for j in range(len(ALIASES[i]))]
     appendix = '|'.join(appendix)
-
     command_pattern = (r'^(hello|add|change|phone|show|exit|help|'
                        + rf'{appendix})')
 
@@ -336,10 +347,8 @@ def parse_input_():
         """Main part of input parser"""
         command = ''
         args = ''
-        status = 'Ok'
-
         if not sequence:
-            return 'help', '', 'Error'
+            return 'help', ''
 
         match_res = re.match(command_pattern, sequence, re.I)
         if match_res:
