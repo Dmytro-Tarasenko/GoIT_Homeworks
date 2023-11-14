@@ -58,7 +58,7 @@ def input_error(handler):
             match handler.__name__:
                 # Key error in add - contact allready exist
                 case 'add':
-                    error += ('Contact`ve been already recorded.',
+                    error += ('Contact`ve been already recorded.'
                               + ' Try another name.')\
                         if 'contact_exists' in str(ke.args) \
                         else 'Unhandled KeyError raised while adding contact.'
@@ -202,6 +202,8 @@ def change(user_phone=''):
 
     _is_user(user_)
 
+    if error:
+        raise ValueError(error)
     # everything`s OK adding contact
     contacts[user_] = phone_
     message = f'{user_}`s phone is changed.'
@@ -323,7 +325,8 @@ def help(command=''):
                         + ' Common operations such as adding, changing,\n'
                         + ' showing contact`s info etc are supported.\n'
                         + 'List of available commands: hello, add,'
-                        + ' change, phone, show, exit, help.\n'
+                        + ' change, phone, show, exit, good bye,'
+                        + ' close, help.\n'
                         + 'Type "help <command> for details')
 
     return status, message
