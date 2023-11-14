@@ -1,11 +1,15 @@
 from collections import UserDict
 import re
 
+
 class Field:
     def __init__(self, value):
         self.value = value
 
     def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
         return str(self.value)
 
 
@@ -15,81 +19,65 @@ class Name(Field):
 
 
 class Phone(Field):
-    def __init__(self, phone):
+    def __init__(self, number):
+        self.value = self.__validate(number)
+
+    def __validate(self, number):
         _valid_phone = r'^\d{10}$'
-        if not re.match(_valid_phone, phone.strip()):
+        if not re.match(_valid_phone, number.strip()):
             raise ValueError('Phone number is invalid!')
-        self.value = phone.strip()
+        return number.strip()
+
+    def replace(self, number):
+        self.value = self.__validate(number)
 
 
 class Record:
     def __init__(self, name):
         self.name = Name(name)
         self.phones = []
-        self.value = {self.name.value: self.phones}
+        self.phones_repr = []
+        self.value = {self.name.value: self.phones_repr}
 
     def add_phone(self, phone):
         phone_ = Phone(phone)
         self.phones.append(phone_)
+        self.phones_repr.append(phone_.value)
 
     def remove_phone(self, phone):
-        phone_ = Phone(phone)
-        self.phones.pop(self.phones.index(phone_))
-
+        _phone = Phone(phone)
+        idx = self.phones_repr.index(_phone.value)
+        self.phones.pop(idx)
+        self.phones_repr.pop(idx)
 
     def edit_phone(self, old_phone, new_phone):
-        old_phone_ = Phone(old_phone)
-        new_phone_ = Phone(new_phone)
-        ind = self.phones.index(old_phone_.value)
-        self.phones[ind] = new_phone_.value
+        _old = Phone(old_phone)
+        _new = Phone(new_phone)
+        idx = self.phones_repr.index(_old.value)
+        self.phones[idx].replace(_new.value)
+        self.phones_repr[idx] = _new.value
 
     def find_phone(self, phone):
         phone_ = Phone(phone)
-        self.phones.index(phone_.value)
-        return phone_.value
+        if phone_.value in self.phones_repr:
+            ind = self.phones_repr.index(phone_.value)
+            return self.phones[ind]
+        return None
 
     def __str__(self):
-        return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}"
+        ret = (f"Contact name: {self.name.value},"
+               + " phones: {'; '.join(p.value for p in self.phones)}")
+        return ret
 
 
 class AddressBook(UserDict):
 
     def add_record(self, record):
-        self.data.update(record)
+        self.data.update({record.name.value: record})
 
     def find(self, name):
-        phones_ = self.data[name]
-        ret_record = Record(name)
-        ret_record.phones.extend(phones_)
-        return ret_record
+        return self.data.get(name)
 
     def delete(self, name):
-        self.data.pop(name)
-
-
-book = AddressBook()
-
-john_record = Record("John")
-john_record.add_phone("1234567890")
-john_record.add_phone("5555555555")
-
-book.add_record(john_record)
-
-jane_record = Record("Jane")
-jane_record.add_phone("9876543210")
-book.add_record(jane_record)
-
-
-for name, record in book.data.items():
-    print(name, record)
-
-john = book.find("John")
-john.edit_phone("1234567890", "1112223333")
-
-print(john)  # Виведення: Contact name: John, phones: 1112223333; 5555555555
-
-found_phone = john.find_phone("5555555555")
-print(f"{john.name}: {found_phone}")  # Виведення: 5555555555
-
-# Видалення запису Jane
-book.delete("Jane")
+        if name in self.data:
+            self.data.pop(name)
