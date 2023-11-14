@@ -30,11 +30,11 @@ class Record:
 
     def add_phone(self, phone):
         phone_ = Phone(phone)
-        self.phones.append(phone_.value)
+        self.phones.append(phone_)
 
     def remove_phone(self, phone):
         phone_ = Phone(phone)
-        self.phones.pop(self.phones.index(phone_.value))
+        self.phones.pop(self.phones.index(phone_))
 
 
     def edit_phone(self, old_phone, new_phone):
@@ -55,13 +55,16 @@ class Record:
 class AddressBook(UserDict):
 
     def add_record(self, record):
-        self.data.update(record.value)
+        self.data.update(record)
 
     def find(self, name):
-        pass
+        phones_ = self.data[name]
+        ret_record = Record(name)
+        ret_record.phones.extend(phones_)
+        return ret_record
 
     def delete(self, name):
-        pass
+        self.data.pop(name)
 
 
 book = AddressBook()
@@ -78,7 +81,7 @@ book.add_record(jane_record)
 
 
 for name, record in book.data.items():
-    print(record)
+    print(name, record)
 
 john = book.find("John")
 john.edit_phone("1234567890", "1112223333")
