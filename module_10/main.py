@@ -22,7 +22,7 @@ class Phone(Field):
     def __init__(self, number):
         if not self.is_valid(number):
             raise ValueError('Invalid number')
-        self.value = number.strip()
+        super().__init__(number.strip())
 
     def is_valid(self, number):
         _valid_phone = r'^\d{10}$'
@@ -40,37 +40,42 @@ class Record:
     def __init__(self, name):
         self.name = Name(name)
         self.phones = []
-        self.phones_repr = []
-        self.value = {self.name.value: self.phones_repr}
+#       self.value = {self.name.value: self.phones_repr}
+
+    # number буде передаватись через Phone.value вже після валідації
+    def __index_of(self, number):
+        numbers = [self.phones[i].value for i in range(len(self.phones))]
+        if number in numbers:
+            return numbers.index(number)
 
     def add_phone(self, phone):
         phone_ = Phone(phone)
         self.phones.append(phone_)
-        self.phones_repr.append(phone_.value)
 
     def remove_phone(self, phone):
         _phone = Phone(phone)
-        idx = self.phones_repr.index(_phone.value)
+        idx = self.__index_of(_phone.value)
+        if idx is None:
+            raise IndexError('Number not found')
         self.phones.pop(idx)
-        self.phones_repr.pop(idx)
 
     def edit_phone(self, old_phone, new_phone):
         _old = Phone(old_phone)
         _new = Phone(new_phone)
-        idx = self.phones_repr.index(_old.value)
+        idx = self.__index_of(_old.value)
+        if idx is None:
+            raise ValueError('Number not found')
         self.phones[idx].replace(_new.value)
-        self.phones_repr[idx] = _new.value
 
     def find_phone(self, phone):
-        phone_ = Phone(phone)
-        if phone_.value in self.phones_repr:
-            ind = self.phones_repr.index(phone_.value)
-            return self.phones[ind]
-        return None
+        _phone = Phone(phone)
+        idx = self.__index_of(_phone.value)
+        if idx is not None:
+            return self.phones[idx]
 
     def __str__(self):
         ret = (f"Contact name: {self.name.value},"
-               + " phones: {'; '.join(p.value for p in self.phones)}")
+               + f" phones: {'; '.join(p.value for p in self.phones)}")
         return ret
 
 
