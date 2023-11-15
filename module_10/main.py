@@ -20,16 +20,20 @@ class Name(Field):
 
 class Phone(Field):
     def __init__(self, number):
-        self.value = self.__validate(number)
+        if not self.is_valid(number):
+            raise ValueError('Invalid number')
+        self.value = number.strip()
 
-    def __validate(self, number):
+    def is_valid(self, number):
         _valid_phone = r'^\d{10}$'
         if not re.match(_valid_phone, number.strip()):
-            raise ValueError('Phone number is invalid!')
-        return number.strip()
+            return False
+        return True
 
     def replace(self, number):
-        self.value = self.__validate(number)
+        if not self.is_valid(number):
+            raise ValueError('Invalid number')
+        self.value = number.strip()
 
 
 class Record:
