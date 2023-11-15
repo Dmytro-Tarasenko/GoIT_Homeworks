@@ -60,12 +60,10 @@ class Record:
         self.phones.pop(idx)
 
     def edit_phone(self, old_phone, new_phone):
-        _old = Phone(old_phone)
-        _new = Phone(new_phone)
-        idx = self.__index_of(_old.value)
+        idx = self.__index_of(old_phone)
         if idx is None:
             raise ValueError('Number not found')
-        self.phones[idx].replace(_new.value)
+        self.phones[idx].replace(new_phone)
 
     def find_phone(self, phone):
         _phone = Phone(phone)
