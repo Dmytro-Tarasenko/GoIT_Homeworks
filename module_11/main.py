@@ -1,3 +1,4 @@
+"""Я здам цю домашку з 3-го разу!!!"""
 from collections import UserDict
 import re
 from datetime import date
@@ -148,7 +149,6 @@ class AddressBook(UserDict):
         if name in self.data:
             self.data.pop(name)
 
-
-if __name__ == '__main__':
-    bday = Birthday('20221116')
-    print(bday)
+    def iterator(self, pg_limit):
+        for ind in range(0, len(self.data.values()), pg_limit):
+            yield self.data.values()[ind:ind+pg_limit]
