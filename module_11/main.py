@@ -26,7 +26,7 @@ class Name(Field):
 
     @value.setter
     def value(self, name):
-        _valid_name = r'^\w(2,)$'
+        _valid_name = r'^[\w ]{2,}$'
         name = name.strip()
         if not re.match(_valid_name, name):
             raise ValueError('Invalid name')
