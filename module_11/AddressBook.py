@@ -3,6 +3,7 @@ from collections import UserDict
 import re
 from datetime import date
 
+
 class Field:
     def __init__(self, value):
         self.value = value
@@ -111,6 +112,7 @@ class Birthday(Field):
             except ValueError as ve:
                 print(f'ValueError raised: {ve.args}')
 
+
 class Record:
     def __init__(self, name):
         self.name = Name(name)
@@ -149,6 +151,7 @@ class Record:
             if not re.match(_number_pattern, phone):
                 return False
             return True
+
     def __str__(self):
         ret = (f'Contact name: {self.name.value},'
                + f' phones: {"; ".join(p.value for p in self.phones)}'
