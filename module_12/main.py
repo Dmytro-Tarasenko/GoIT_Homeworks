@@ -1,5 +1,7 @@
+import pickle
 import re
 from AddressBook import AddressBook, Name, Phone, Record, Birthday
+from pathlib import Path
 
 HEADER = r"""
  <*********************************************************************>
@@ -371,6 +373,14 @@ def parse_input_():
     return inner
 
 
+def read_from_file(path: Path):
+    with path.open('rb') as fin:
+        try:
+            data = pickle.load(fin)
+        except:
+            data = None
+    return data
+
 def main():
     print(HEADER)
 
@@ -383,6 +393,12 @@ def main():
         'exit': {'func': exit, 'args': False},
         'help': {'func': help, 'args': True}
     }
+
+    data_bin = Path('data.bin')
+    if data_bin.exists():
+        address_book = read_from_file(data_bin)
+    if address_book is None:
+        address_book = AddressBook()
 
     parse_input = parse_input_()
 
