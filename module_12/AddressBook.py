@@ -28,7 +28,7 @@ class Name(Field):
     def value(self, name):
         if isinstance(name, str):
             name = name.strip()
-        _name_pattern = r'^[\w \.\,]+$'
+        _name_pattern = r'^[\w \.\,\-]+$'
         if not re.match(_name_pattern, name):
             print('ValueError raised: Invalid name')
             return
@@ -153,8 +153,8 @@ class Record:
             return True
 
     def __str__(self):
-        ret = (f'Contact name: {self.name.value},'
-               + f' phones: {"; ".join(p.value for p in self.phones)}'
+        ret = (f'contact name - {self.name.value},'
+               + f' phones: {", ".join(p.value for p in self.phones)};'
                + f' birthday: {self.birthday}')
         return ret
 
@@ -232,6 +232,17 @@ class Record:
 
 
 class AddressBook(UserDict):
+    def __init__(self):
+        self.current_record_id = 0
+        super().__init__()
+
+    def get_current_record(self):
+        record_key = list(self.data.keys())[self.current_record_id]
+        return self.data[record_key]
+
+    def get_record_byid(self, id_=0):
+        record_key = list(self.data.keys())[id_]
+        return self.data[record_key]
 
     def add_record(self, record):
         self.data.update({record.name.value: record})

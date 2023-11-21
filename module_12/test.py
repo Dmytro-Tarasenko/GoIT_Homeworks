@@ -144,8 +144,8 @@ print(book)
 
 
 names = ['Alex', 'Bob', 'Andre', 'Ann', 'Isabelle']
-pag_lim = 3
-pgs = 2
+pag_lim = 7
+pgs = 30
 num_records = pag_lim * pgs + random.randrange(0, pag_lim)
 
 print(f'Generate random {num_records} records for test_book:')
@@ -165,7 +165,7 @@ print(f'test_book got {len(test_book)} records\n')
 import pickle
 
 with open('data.bin', 'wb') as fout:
-    data  = pickle.dump(test_book)
+    pickle.dump(test_book, fout)
 
 pgs = pgs+1 if num_records % pag_lim else pgs
 print(f'With {pag_lim} records per page there will be {pgs} page(s)')

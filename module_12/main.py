@@ -1,7 +1,7 @@
 import pickle
 import re
-from AddressBook import AddressBook, Name, Phone, Record, Birthday
 from pathlib import Path
+from AddressBook import AddressBook, Record, Birthday, Name, Phone
 
 HEADER = r"""
  <*********************************************************************>
@@ -33,18 +33,7 @@ BYE = r"""
 
 GREETING_MSG = 'How can I help you?'
 
-ALIASES = {'exit': ['good bye', 'close', 'cya',
-                    'see you', 'asta la vista'],
-           'help': ['how to', 'idk', 'command'],
-           'show': ['show all', 'exhibit', 'reveal'],
-           'hello': ['hi', 'greetings', 'good morning',
-                     'good afternoon', 'good evening', 'yo'],
-           'add': ['plus', 'append'],
-           'open': ['read', 'get'],
-           'write': ['save'],
-           'encrypt': ['cypher', 'secure', 'lock']}
-
-contacts = {}  # Contacts storage
+address_book = None
 loop = True  # Exit controller
 
 
@@ -62,7 +51,7 @@ def input_error(handler):
             return_values = handler(*args)
         except KeyError as ke:
             match handler.__name__:
-                # Key error in add - contact allready exist
+                # Key error in add - contact already exist
                 case 'add':
                     error += ('Contact`ve been already recorded.'
                               + ' Try another name.')\
@@ -142,13 +131,7 @@ def _check_user(user_=''):
 
 def _is_user(user_=''):
     error = ''
-    if user_ not in contacts:
-        error += '!contact_exists'
-
-    if '!contact_exists' in error:
-        raise KeyError(error)
-    elif error:
-        raise ValueError(error)
+    pass
 
 
 def _check_number(phone_=''):
@@ -164,112 +147,96 @@ def _check_number(phone_=''):
 
 
 @input_error
-def add(user_phone=''):
+def add(sequence=''):
     """Adds new contact with phone number"""
     status = 'OK'
     message = ''
     error = ''
 
-    _check_user_phone(user_phone)
-
-    user_, phone_ = user_phone.rsplit(' ', maxsplit=1)
-
-    error += _check_number(phone_)
-    error += _check_user(user_)
-
-    if user_ in contacts:
-        error += 'contact_exists'
-
-    if 'contact_exists' in error:
-        raise KeyError(error)
-    elif error:
-        raise ValueError(error)
-
-    # everything`s OK adding contact
-    contacts[user_] = phone_
-    message = f'{user_}`s added.'
-
     return status, message
 
 
 @input_error
-def change(user_phone=''):
+def change(args=None):
     """Changes recorder phone number for given contact"""
     status = 'OK'
     message = ''
     error = ''
 
-    _check_user_phone(user_phone)
-
-    user_, phone_ = user_phone.rsplit(' ', maxsplit=1)
-
-    error += _check_number(phone_)
-    error += _check_user(user_)
-
-    _is_user(user_)
-
-    if error:
-        raise ValueError(error)
-    # everything`s OK adding contact
-    contacts[user_] = phone_
-    message = f'{user_}`s phone is changed.'
-
     return status, message
 
 
 @input_error
-def phone(user_=''):
+def phone(args=None):
     """Displays phone number for given contact"""
     status = 'OK'
     message = ''
     error = ''
 
-    if not user_:
-        error += 'no_contact'
-        raise ValueError(error)
-
-    error += _check_user(user_)
-    if error:
-        raise ValueError(error)
-
-    _is_user(user_)
-
-    message = f'{user_}`s phone is: {contacts[user_]}'
-
     return status, message
 
 
 @input_error  # IndexError - empty
-def show_all():
+def show_all(record='all'):
     """Displays all recorded contacts"""
     status = 'OK'
     message = ''
     error = ''
 
-    if len(contacts) == 0:
-        error += 'empty_list'
-        raise IndexError(error)
-
-    header = (f'+{"=":=^15}+{"=":=^15}+\n'
-              + f'|{"CONTACT NAME":^15}|{"PHONE NUMBER":^15}|\n'
-              + f'+{"-":-^15}+{"-":-^15}+\n')
-    footer = f'+{"-":-^15}+{"-":-^15}+\n'
-    message += header
-
-    for name, number in contacts.items():
-        name = name if len(name) < 12 else name[:12]+'...'
-        message += (f'|{name.capitalize():^15}|{number:^15}|\n'
-                    + footer)
-
     return status, message
 
 
-def exit():
+@input_error
+def find():
+    pass
+
+
+# args = {
+#     'name': name_str,
+#     'phone': phone_repr,
+#     'birthday': date_string,
+#     'etc': [non, matched, strings]
+# }
+@input_error
+def parse_args(sequence):
+    ret_args = {
+        'name': '',
+        'phone': [],
+        'birthday': [],
+        'etc': ''
+    }
+    bday_pattern = r'\b(?:(\d{4}.\d{2}.\d{2})|(\d{2}.\d{2}.\d{4}))\b'
+    # pattern from autochecks +38[ ( ]012[ ) ]123[- ]45[- ]67
+    phone_pattern = (r'\b(\d{2} ?[\( ]?\d{3}[\) ]?[ ]?\d{3}[- ]?'
+                     + r'(?:\d{1}[- ]?\d{3}|\d{2}[- ]?\d{2}))\b')
+    # One Word+numbers
+    name_pattern = r'^\w+\d*'
+    ret_args['birthday'] = re.findall(bday_pattern, sequence)
+    sequence = re.sub(bday_pattern, '', sequence).strip()
+    ret_args['phone'] = re.findall(phone_pattern, sequence)
+    sequence = re.sub(phone_pattern, '', sequence).strip()
+    ret_args['name'] = re.match(name_pattern, sequence).group()
+    sequence = re.sub(name_pattern, '', sequence).strip()
+    ret_args['etc'] = sequence
+    print(ret_args)
+
+    return ret_args
+    # add peter vasyl 1234-56-78 123456789012 09-98-4321 123456789098
+
+def exit_():
     """Job is done let`s go home"""
     global loop
     loop = False
     status = None
     message = BYE
+
+    with open('data.bin', 'wb') as f_out:
+        try:
+            pickle.dump(address_book, f_out)
+            print
+        except Exception as er:
+            print(f'Error raised while saving addressbook: {str(er.args)}')
+            status = 'Error'
 
     return status, message
 
@@ -280,50 +247,41 @@ def help(command=''):
 
     status = None
 
-    alias_str = ', '.join(ALIASES[command]) if command in ALIASES else ''
-    alias_str = f'alias(es) for {command} is(are): {alias_str}' \
-        if alias_str else ''
-
-    for com, aliases in ALIASES.items():
-        if cmd_ in aliases:
-            alias_str = f'Is alias for {com}'
-            break
-
     message = 'Usage: '
     match command:
         case 'add':
-            message += f'{cmd_} <contact_name> <phone_number>\n{alias_str}\n'
-            message += ('Adds  contact with name <contact_name>'
-                        + ' and phone number <phone_number> to contact base.\n'
-                        + '<conact_name> contains only one word and'
+            message += (f'{cmd_} <contact_name> [<phone_number>,'
+                        + f'<birthday>]\n')
+            message += ('Adds  contact with name <contact_name>,'
+                        + 'phone number <phone_number> to contact base.\n'
+                        + '<contact_name> contains only one word and'
                         + ' <phone_number> - only digits,'
                         + ' phones with 6, 7, 10 or 12 digits are acceptable')
         case 'exit':
-            message += f'{cmd_}\n{alias_str}\n'
+            message += f'{cmd_}\n'
             message += 'Prints farewell message and exits'
         case 'show':
-            message += f'{cmd_}\n{alias_str}\n'
+            message += f'{cmd_}\n'
             message += 'Shows all recorded contacts'
         case 'hello':
-            message += f'{cmd_}\n{alias_str}\n'
+            message += f'{cmd_}\n'
             message += 'Shows greeting message'
         case 'change':
-            message += f'{cmd_} <contact_name> <phone_number>\n{alias_str}\n'
+            message += f'{cmd_} <contact_name> <phone_number>\n'
             message += ('Changes recorded phone number of <contact_name>'
                         + ' to  <phone_number>.\n'
-                        + '<conact_name> contains only one word and'
+                        + '<contact_name> contains only one word and'
                         + ' <phone_number> - only digits,'
                         + ' phones with 6, 7, 10 or 12 digits are acceptable')
         case 'phone':
-            message += f'{cmd_} <contact_name>\n{alias_str}\n'
+            message += f'{cmd_} <contact_name>\n'
             message += ('Shows recorded phone number for <contact_name>\n'
-                        + '<conact_name> contains only one word')
+                        + '<contact_name> contains only one word')
         case 'help':
-            message += f'{cmd_} <command>\n{alias_str}\n'
-            message += ('Displays help info for <command>'
-                        + ' and its aliases.\n'
+            message += f'{cmd_} <command>\n'
+            message += ('Displays help info for <command>\n'
                         + 'List of available commands: hello, add,'
-                        + ' change, phone, show, exit, help.\n')
+                        + ' change, phone, show, exit, help, find.\n')
         case _:
             message += '<command> [<parameters>]\n'
             message += ('Bot provides a storage for contacts.'
@@ -337,51 +295,36 @@ def help(command=''):
     return status, message
 
 
-def parse_input_():
-    """Preparative part of parse_input - saving state
-    for quick_access_aliases
-    """
-    quick_access_aliases = {}
-    for command, alias_lst in ALIASES.items():
-        quick_access_aliases.update({alias: command for alias in alias_lst})
+def parse_input(sequence=''):
+    """Main part of input parser"""
+    command_pattern = r'^(hello|add|change|phone|show|exit|help|find)'
+    command = ''
+    args = ''
+    if not sequence:
+        return 'help', ''
 
-    appendix = [ALIASES[i][j] for i in ALIASES
-                for j in range(len(ALIASES[i]))]
-    appendix = '|'.join(appendix)
-    command_pattern = (r'^(hello|add|change|phone|show|exit|help|'
-                       + rf'{appendix})')
-
-    def inner(sequence=''):
-        """Main part of input parser"""
-        command = ''
+    match_res = re.match(command_pattern, sequence, re.I)
+    if match_res:
+        command = match_res.group()
+        args = sequence[match_res.span()[1]:].lstrip()
+        args = parse_args(args)
+    else:
+        command = 'help'
         args = ''
-        if not sequence:
-            return 'help', ''
 
-        match_res = re.match(command_pattern, sequence, re.I)
-        if match_res:
-            command = match_res.group()
-            command = command if command not in quick_access_aliases \
-                else quick_access_aliases[command]
-            args = sequence[match_res.span()[1]:].lstrip()
-        else:
-            command = 'help'
-            args = ''
-
-        return command, args
-
-    return inner
+    return command, args
 
 
 def read_from_file(path: Path):
     with path.open('rb') as fin:
         try:
             data = pickle.load(fin)
-        except:
+        except Exception as er:
             data = None
     return data
 
 def main():
+    global address_book
     print(HEADER)
 
     commands = {
@@ -389,9 +332,10 @@ def main():
         'add': {'func': add, 'args': True},
         'change': {'func': change, 'args': True},
         'phone': {'func': phone, 'args': True},
-        'show': {'func': show_all, 'args': False},
-        'exit': {'func': exit, 'args': False},
-        'help': {'func': help, 'args': True}
+        'show': {'func': show_all, 'args': True},
+        'exit': {'func': exit_, 'args': False},
+        'help': {'func': help, 'args': True},
+        'find': {'func': find, 'args': True}
     }
 
     data_bin = Path('data.bin')
@@ -400,12 +344,23 @@ def main():
     if address_book is None:
         address_book = AddressBook()
 
-    parse_input = parse_input_()
+    info_message = ('Addressbook is loaded '
+                    + f'({len(address_book.data)} records)')\
+        if len(address_book.data) > 0 \
+        else 'Addressbook is created (0 records)'
+    current_record = (f'Current record [{address_book.current_record_id}'
+                      + f']: {str(address_book.get_current_record())}')\
+        if len(address_book.data) > 0 \
+        else 'There is no records yet in addressbook.'
+    commands_line = 'Commands: ' + ' | '.join(commands.keys())
 
     while loop:
+        print(info_message)
+        print(current_record)
+        print(commands_line)
         sequence = input(">>> ").lstrip().lower()
-
         command, args = parse_input(sequence)
+        args = parse_args(args)
 
         if not command:
             command = 'help'
