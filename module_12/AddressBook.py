@@ -28,7 +28,7 @@ class Name(Field):
     def value(self, name):
         if isinstance(name, str):
             name = name.strip()
-        _name_pattern = r'^[\w \.\,\-]+$'
+        _name_pattern = r'^[\w_\.\,\-]+$'
         if not re.match(_name_pattern, name):
             print('ValueError raised: Invalid name')
             return
@@ -98,8 +98,7 @@ class Birthday(Field):
             # date yyyy-mm-dd | dd-mm-yyyy
             _bday_pattern = r'^(\d{2}-\d{2}-\d{4})|(\d{4}-\d{2}-\d{2})$'
             if not re.match(_bday_pattern, bday):
-                print('ValueError raised: Invalid date')
-                return
+                raise ValueError('invalid_date')
             # what is 1st in bday year|day
             if len(bday.split('-')[0]) == 2:
                 bday = '-'.join(bday.split('-')[::-1])
@@ -107,10 +106,12 @@ class Birthday(Field):
                 res = date.fromisoformat(bday)
                 if res > date.today():
                     self.__value = None
+                    raise ValueError('future_date')
                 else:
                     self.__value = res
             except ValueError as ve:
-                print(f'ValueError raised: {ve.args}')
+                err = '|'.join(ve.args)
+                raise ValueError(err)
 
 
 class Record:
@@ -160,15 +161,14 @@ class Record:
 
     def add_phone(self, phone):
         if not self.is_valid_phone(phone):
-            print('ValueError is raised: invalid number.')
-            return
+            raise ValueError('wrong_number')
         if (isinstance(phone, Phone) and
-                not self._get_phone_ind(phone.value)):
+                self._get_phone_ind(phone.value) is None):
             self.phones.append(phone)
-        elif not self._get_phone_ind(self.prep_phone(phone)):
+        elif self._get_phone_ind(self.prep_phone(phone)) is None:
             self.phones.append(Phone(phone))
         else:
-            print('KeyError is raised: Phone is already recorded')
+            raise KeyError('phone_exists')
 
     def _get_phone_ind(self, phone_str):
         phone_lst = list(self.__phone_values())
@@ -178,8 +178,7 @@ class Record:
 
     def _do_phone(self, phone, command: str, new_phone=None):
         if not self.is_valid_phone(phone):
-            print('ValueError is raised: invalid number')
-            return None
+            raise ValueError('wrong_number')
         if isinstance(phone, Phone):
             _search = phone.value
         else:
@@ -194,18 +193,16 @@ class Record:
                     return
                 case 'edit':
                     if new_phone is None:
-                        print('ValueError is raised: new phone needed.')
-                        return
+                        raise ValueError('new_phone_needed')
                     if not self.is_valid_phone(new_phone):
-                        print('ValueError is raised: invalid number')
-                        return
+                        raise ValueError('wrong_number')
                     if isinstance(new_phone, Phone):
                         _sub = new_phone.value
                     else:
                         _sub = self.prep_phone(new_phone)
                     self.phones[ind].value = _sub
                     return
-        print('ValueError raised: number not found')
+        raise ValueError('phone_not_found')
 
     def find_phone(self, phone):
         return self._do_phone(phone, 'find')
@@ -218,9 +215,8 @@ class Record:
 
     def days_to_birthday(self):
         if self.birthday.value is None:
-            print(f'ValueError: Record {self.name.value}'
+            raise ValueError(f'{self.name.value}'
                   + ' got no birthday set.')
-            return
         cur_bday = date(date.today().year,
                         self.birthday.value.month,
                         self.birthday.value.day)
@@ -229,7 +225,6 @@ class Record:
                             cur_bday.month,
                             cur_bday.day)
         return (cur_bday - date.today()).days
-
 
 class AddressBook(UserDict):
     def __init__(self):
@@ -241,20 +236,32 @@ class AddressBook(UserDict):
         return self.data[record_key]
 
     def get_record_byid(self, id_=0):
-        record_key = list(self.data.keys())[id_]
+        record_key = list(self.data.keys())[id_]\
+            if id_ < len(self.data)\
+            else len(self.data) - 1
         return self.data[record_key]
 
     def add_record(self, record):
         self.data.update({record.name.value: record})
+        name = record.name.value
+        self.current_record_id = list(self.data.keys()).index(name)
 
     def find(self, name):
-        return self.data.get(name)
+        if name in self.data.keys():
+            self.current_record_id = list(self.data.keys()).index(name)
+            return self.data.get(name)
+        return None
 
     def delete(self, name):
         if name in self.data:
+            id_ = list(self.data.keys()).index(name)
+            self.current_record_id = id_ - 1\
+                if id_ > 0 else 0
             self.data.pop(name)
 
     def iterator(self, pg_lim):
         for ind in range(0, len(self.data), pg_lim):
+            self.current_record_id = ind + pg_lim\
+                if (ind + pg_lim) < len(self.data)\
+                else len(self.data) - 1
             yield list(self.data.values())[ind:ind+pg_lim]
-

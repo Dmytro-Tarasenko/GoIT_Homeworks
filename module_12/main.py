@@ -33,6 +33,11 @@ BYE = r"""
 
 GREETING_MSG = 'How can I help you?'
 
+BDAY_PATTERN = (r'\b(?:(\d{4}[\-,\.\\/]\d{2}[\-,\.\\/]\d{2})|'
+                + r'(\d{2}[\-,\.\\/]\d{2}[\-,\.\\/]\d{4}))\b')
+PHONE_PATTERN = r'\b\d{12}|\d{10}|\d{7}|\d{6}|\b'
+NAME_PATTERN = r'\b[a-zA-Z]+[\w\.\,]+\b'
+
 address_book = None
 loop = True  # Exit controller
 
@@ -53,10 +58,14 @@ def input_error(handler):
             match handler.__name__:
                 # Key error in add - contact already exist
                 case 'add':
-                    error += ('Contact`ve been already recorded.'
-                              + ' Try another name.')\
-                        if 'contact_exists' in str(ke.args) \
-                        else 'Unhandled KeyError raised while adding contact.'
+                    if 'contact_exists' in str(ke.args):
+                        error += ('Contact`ve been already recorded.'
+                                  + ' Try another name.')
+                    if 'phone_exists' in str(ke.args):
+                        error += ('Phone`ve been already recorded.'
+                                  + ' Try another one.')
+                    else:
+                        'Unhandled KeyError raised while adding contact.'
                 # KeyError in change | phone - contact does not exist
                 case 'change' | 'phone':
                     error += 'Contact does not exist. Try another name.' \
@@ -72,6 +81,9 @@ def input_error(handler):
                     if 'no_contact_number' in str(ve.args):
                         error += ('Provide valid contact name\\'
                                   + 'phone number to proceed\n')
+                    if 'future_date' in str(ve.args):
+                        error += ('Future is not come yet.'
+                                  + ' Try another date\n')
                     if 'no_contact' in str(ve.args):
                         error += ('Provide contact name to proceed\n')
                     if 'no_number' in str(ve.args):
@@ -145,13 +157,54 @@ def _check_number(phone_=''):
 
     return error
 
+def tokenize_args(sequence=''):
+    names = []
+    phones = []
+    bdays = []
+
+    tokens = sequence.split(' ')
+
+    for token in tokens:
+        if re.match(NAME_PATTERN, token):
+            names.append(token)
+        elif re.match(BDAY_PATTERN, token):
+            bdays.append(token)
+        elif re.match(PHONE_PATTERN, token):
+            phones.append(token)
+
+    return names, phones, bdays
+
 
 @input_error
 def add(sequence=''):
     """Adds new contact with phone number"""
     status = 'OK'
     message = ''
-    error = ''
+
+    names, phones, bdays = tokenize_args(sequence)
+
+    if len(names) == 0:
+        record = address_book.get_current_record()
+    else:
+        record = address_book.find(names[0])
+        if not record:
+            address_book.add_record(Record(names[0]))
+            record = address_book.find(names[0])
+        if len(names) > 1:
+            message += ('Warning: Only 1 name can be in add command.'
+                        + ' To edit name use <change> command instead.\n')
+    if len(bdays) > 0:
+        if record.birthday is None:
+            record.birthday = bdays[0]
+        else:
+            message += (f'Warning: Record {record.name} has birthday set.'
+                        + ' Use <change> command instead.\n')
+        if len(bdays) > 1:
+            message += 'Warning: Human can have only 1 birthday.\n'
+
+    if len(phones) > 0:
+        for phone in phones:
+            record.add_phone(phone)
 
     return status, message
 
@@ -187,41 +240,9 @@ def show_all(record='all'):
 
 
 @input_error
-def find():
+def find(search=''):
     pass
 
-
-# args = {
-#     'name': name_str,
-#     'phone': phone_repr,
-#     'birthday': date_string,
-#     'etc': [non, matched, strings]
-# }
-@input_error
-def parse_args(sequence):
-    ret_args = {
-        'name': '',
-        'phone': [],
-        'birthday': [],
-        'etc': ''
-    }
-    bday_pattern = r'\b(?:(\d{4}.\d{2}.\d{2})|(\d{2}.\d{2}.\d{4}))\b'
-    # pattern from autochecks +38[ ( ]012[ ) ]123[- ]45[- ]67
-    phone_pattern = (r'\b(\d{2} ?[\( ]?\d{3}[\) ]?[ ]?\d{3}[- ]?'
-                     + r'(?:\d{1}[- ]?\d{3}|\d{2}[- ]?\d{2}))\b')
-    # One Word+numbers
-    name_pattern = r'^\w+\d*'
-    ret_args['birthday'] = re.findall(bday_pattern, sequence)
-    sequence = re.sub(bday_pattern, '', sequence).strip()
-    ret_args['phone'] = re.findall(phone_pattern, sequence)
-    sequence = re.sub(phone_pattern, '', sequence).strip()
-    ret_args['name'] = re.match(name_pattern, sequence).group()
-    sequence = re.sub(name_pattern, '', sequence).strip()
-    ret_args['etc'] = sequence
-    print(ret_args)
-
-    return ret_args
-    # add peter vasyl 1234-56-78 123456789012 09-98-4321 123456789098
 
 def exit_():
     """Job is done let`s go home"""
@@ -233,7 +254,6 @@ def exit_():
     with open('data.bin', 'wb') as f_out:
         try:
             pickle.dump(address_book, f_out)
-            print
         except Exception as er:
             print(f'Error raised while saving addressbook: {str(er.args)}')
             status = 'Error'
@@ -307,7 +327,6 @@ def parse_input(sequence=''):
     if match_res:
         command = match_res.group()
         args = sequence[match_res.span()[1]:].lstrip()
-        args = parse_args(args)
     else:
         command = 'help'
         args = ''
@@ -360,7 +379,6 @@ def main():
         print(commands_line)
         sequence = input(">>> ").lstrip().lower()
         command, args = parse_input(sequence)
-        args = parse_args(args)
 
         if not command:
             command = 'help'
@@ -373,6 +391,11 @@ def main():
             print(message)
         else:
             print(message)
+        info_message = f'Address book got {len(address_book.data)} record(s).'
+        current_record = (f'Current record [{address_book.current_record_id}'
+                          + f']: {str(address_book.get_current_record())}') \
+            if len(address_book.data) > 0 \
+            else 'There is no records yet in addressbook.'
 
 
 if __name__ == "__main__":
