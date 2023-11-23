@@ -268,54 +268,27 @@ def exit_():
 
 def help(command=''):
     """Prints help"""
-    cmd_ = command
-
     status = None
 
     message = 'Usage: '
-    match command:
-        case 'add':
-            message += (f'{cmd_} <contact_name> [<phone_number>,'
-                        + f'<birthday>]\n')
-            message += ('Adds  contact with name <contact_name>,'
-                        + 'phone number <phone_number> to contact base.\n'
-                        + '<contact_name> contains only one word and'
-                        + ' <phone_number> - only digits,'
-                        + ' phones with 6, 7, 10 or 12 digits are acceptable')
-        case 'exit':
-            message += f'{cmd_}\n'
-            message += 'Prints farewell message and exits'
-        case 'show':
-            message += f'{cmd_}\n'
-            message += 'Shows all recorded contacts'
-        case 'hello':
-            message += f'{cmd_}\n'
-            message += 'Shows greeting message'
-        case 'change':
-            message += f'{cmd_} <contact_name> <phone_number>\n'
-            message += ('Changes recorded phone number of <contact_name>'
-                        + ' to  <phone_number>.\n'
-                        + '<contact_name> contains only one word and'
-                        + ' <phone_number> - only digits,'
-                        + ' phones with 6, 7, 10 or 12 digits are acceptable')
-        case 'phone':
-            message += f'{cmd_} <contact_name>\n'
-            message += ('Shows recorded phone number for <contact_name>\n'
-                        + '<contact_name> contains only one word')
-        case 'help':
+    for cmd, msg in helpmsg.items():
+        if cmd == command:
+            message += msg
+
+    if message == 'Usage: ':
+        message += '<command> [<parameters>]\n'
+        message += ('Bot provides a storage for contacts.'
+                    + ' Common operations such as adding, changing,\n'
+                    + ' showing contact`s info etc are supported.\n'
+                    + 'List of available commands: hello, add,'
+                    + ' change, show, exit, find, help.\n'
+                    + 'Type "help <command> for details')
+
+        case :
             message += f'{cmd_} <command>\n'
             message += ('Displays help info for <command>\n'
                         + 'List of available commands: hello, add,'
                         + ' change, phone, show, exit, help, find.\n')
-        case _:
-            message += '<command> [<parameters>]\n'
-            message += ('Bot provides a storage for contacts.'
-                        + ' Common operations such as adding, changing,\n'
-                        + ' showing contact`s info etc are supported.\n'
-                        + 'List of available commands: hello, add,'
-                        + ' change, phone, show, exit, good bye,'
-                        + ' close, help.\n'
-                        + 'Type "help <command> for details')
 
     return status, message
 
@@ -382,7 +355,7 @@ def main():
         print(info_message)
         print(current_record)
         print(commands_line)
-        sequence = input(">>> ").lstrip().lower()
+        sequence = input(">>> ").lstrip()
         command, args = parse_input(sequence)
 
         if not command:
@@ -396,7 +369,7 @@ def main():
             print(message)
         else:
             print(message)
-        info_message = f'Address book got {len(address_book.data)} record(s).'
+        info_message = f'Address book`s got {len(address_book.data)} record(s).'
         current_record = (f'Current record [{address_book.current_record_id}'
                           + f']: {str(address_book.get_current_record())}') \
             if len(address_book.data) > 0 \
