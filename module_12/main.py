@@ -2,6 +2,7 @@ import pickle
 import re
 from pathlib import Path
 from AddressBook import AddressBook, Record, Birthday, Name, Phone
+from messages import helpmsg, errormsg
 
 HEADER = r"""
   <*********************************************************>
@@ -50,64 +51,19 @@ def input_error(handler):
         error = ''
         try:
             return_values = handler(*args)
-        except KeyError as ke:
-            match handler.__name__:
-                # Key error in add - contact already exist
-                case 'add':
-                    if 'contact_exists' in str(ke.args):
-                        error += ('Contact`ve been already recorded.'
-                                  + ' Try another name.')
-                    if 'phone_exists' in str(ke.args):
-                        error += ('Phone`ve been already recorded.'
-                                  + ' Try another one.')
-                    else:
-                        'Unhandled KeyError raised while adding contact.'
-                # KeyError in change | phone - contact does not exist
-                case 'change' | 'phone':
-                    error += 'Contact does not exist. Try another name.' \
-                        if '!contact_exists' in str(ke.args) \
-                        else ('Unhandled KeyError raised in'
-                              + f' {handler.__name__}.')
-                case _:
-                    error += f'Unhandled KeyError in {handler.__name__}'
-        except ValueError as ve:
-            match handler.__name__:
-                # no_contact|no_number|wrong_contact|wrong_number|contact_or_phone_mis
-                case 'add' | 'change' | 'phone':
-                    if 'no_contact_number' in str(ve.args):
-                        error += ('Provide valid contact name\\'
-                                  + 'phone number to proceed\n')
-                    if 'future_date' in str(ve.args):
-                        error += ('Future is not come yet.'
-                                  + ' Try another date\n')
-                    if 'no_contact' in str(ve.args):
-                        error += ('Provide contact name to proceed\n')
-                    if 'no_number' in str(ve.args):
-                        error += ('Provide phone number to proceed\n')
-                    if 'wrong_number' in str(ve.args):
-                        error += 'Provided phone number is not valid\n'
-                    if 'wrong_contact' in str(ve.args):
-                        error += 'Provided contact name is not valid\n'
-                    if 'contact_or_phone_mis' in str(ve.args):
-                        error += ('Both contact name and phone number'
-                                  + ' are needed to proceed\n')
-                    error += (f'Type "help {handler.__name__}"'
-                              + ' for detailed info')
-                case _:
-                    error = f'Unhandled KeyError in {handler.__name__}'
-        except IndexError as ie:
-            match handler.__name__:
-                case 'show_all':
-                    if 'empty_list' in str(ie.args):
-                        error += ('Nothing to show -'
-                                  + ' contacts base got no records.\n'
-                                  + 'Try to fill it first.')
-                case 'add':
-                    if 'mentor_detected' in str(ie.args):
-                        error += ('Really!? Adding data to no records!?\n'
-                                  + 'Ulyana, are you here?\n')
-                case _:
-                    error = f'Unhandled IndexError in {handler.__name__}'
+        except Exception as exception:
+            handled = False
+            for err, msg in errormsg.items():
+                if err in str(exception.args):
+                    error += msg
+                    handled = True
+            if not handled:
+                error += (f'Unhandled {exception.__repr__()} raised in'
+                          + f' {handler.__name__}.\n'
+                          + f' arguments: {args}\n')
+
+            error += (f'Type "help {handler.__name__}"'
+                      + ' for detailed info')
         finally:
             return_values = return_values if not error \
                 else ('Error', error)
@@ -115,47 +71,9 @@ def input_error(handler):
 
     return inner
 
-
-def _check_user_phone(user_phone=''):
-    error = ''
-    one_of_two_pattern = r'[\w\d]+ [\w\d]+'
-
-    # validating contact and phone number
-    if not user_phone:
-        error += 'no_contact_number'
-    elif not re.match(one_of_two_pattern, user_phone):
-        error += 'contact_or_phone_mis'
-    if error:
-        raise ValueError(error)
-
-
-def _check_user(user_=''):
-    """Validates user name"""
-    error = ''
-
-    user_pattern = r'^[A-Za-z]+'
-    user_match = re.match(user_pattern, user_)
-    if not user_match or user_match.group() != user_:
-        error += 'wrong_contact|'
-
-    return error
-
-
-def _is_user(user_=''):
-    error = ''
-    pass
-
-
-def _check_number(phone_=''):
-    """Validates phone number"""
-    error = ''
-    # phones with 6, 7, 10 or 12 digits are acceptable
-    phone_pattern = r'\d{12}|\d{10}|\d{7}|\d{6}'
-    phone_match = re.match(phone_pattern, phone_)
-    if not phone_match or phone_match.group() != phone_:
-        error += 'wrong_number|'
-
-    return error
+#
+# CUTTED
+#
 
 def tokenize_args(sequence=''):
     names = []
@@ -186,10 +104,10 @@ def add(sequence=''):
     if len(names) == 0:
         record = address_book.get_current_record()
     else:
-        record = address_book.find(names[0])
+        record = address_book.find(names[0].capitalize())
         if not record:
-            address_book.add_record(Record(names[0]))
-            record = address_book.find(names[0])
+            address_book.add_record(Record(names[0].capitalize()))
+            record = address_book.find(names[0].capitalize())
         if len(names) > 1:
             message += ('Warning: Only 1 name can be in add command.'
                         + ' To edit name use <change> command instead.\n')
@@ -210,38 +128,125 @@ def add(sequence=''):
 
 
 @input_error
-def change(args=None):
-    """Changes recorder phone number for given contact"""
+def change(sequence=''):
+    """Changes recorded info current or given record"""
     status = 'OK'
     message = ''
-    error = ''
 
-    return status, message
+    names, phones, bdays = tokenize_args(sequence)
 
+    if len(names) <= 1:
+        record = address_book.get_current_record()
+        if len(names) == 1:
+            record.name = Name(names[0].capitalize())
+    elif len(names) >= 2:
+        record = address_book.find(names[0].capitalize())
+        if record is None:
+            raise KeyError('!contact_exists')
+        record.name = Name(names[1].capitalize())
+        if len(names) > 2:
+            message += 'Warning: Only 2 names are taken into account.\n'
 
-@input_error
-def phone(args=None):
-    """Displays phone number for given contact"""
-    status = 'OK'
-    message = ''
-    error = ''
+    if len(phones) > 0:
+        if len(phones) == 1:
+            if len(record.phones) == 1:
+                record.edit_phone(record.phones[0], Phone(phones[0]))
+            else:
+                raise ValueError('not_enough_phones')
+        else:
+            pairs = []
+            for ind in range(0, len(phones), 2):
+                pairs.append(phones[ind: ind+2])
+            for pair in pairs:
+                if len(pair) == 2:
+                    record.edit_phone(pair[0], pair[1])
+                else:
+                    raise ValueError('not_enough_phones')
+
+    if len(bdays) > 0:
+        if len(bdays) >= 1:
+            if record.birthday is None:
+                message += (f'Warning: Record {record.name} has'
+                            + ' no birthday set.'
+                            + ' Use <add> command instead.\n')
+            else:
+                record.birthday = Birthday(bdays[0])
+            if len(bdays) > 1:
+                message += 'Warning: Only 1 birthday is used.'
 
     return status, message
 
 
 @input_error  # IndexError - empty
 def show_all(record='all'):
-    """Displays all recorded contacts"""
+    """Displays recorded contacts"""
     status = 'OK'
     message = ''
-    error = ''
 
     return status, message
 
 
 @input_error
-def find(search=''):
-    pass
+def find(sequence=''):
+    """Finds record by given patterns"""
+    status = 'OK'
+    message = ''
+    res_lst = []
+
+    name_part = r'\b[a-z]{2,}\b'
+    phone_part = r'\b\d{2,}\b'
+    srch_name = [i for i in sequence.split()
+                        if re.search(name_part, i)]
+    srch_phon = [i for i in sequence.split()
+                        if re.search(phone_part, i)]
+    if len(sequence.split()) != len(srch_phon) + len(srch_name):
+        message += 'Warning: Some invalid search pattern were removed.\n'
+    if len(srch_name) == 0 and len(srch_phon) == 0:
+        raise ValueError('bad_search_cond')
+
+    for rcrd in address_book.data.values():
+
+        row = {'name': '', 'id': None, 'phones': []}
+
+        for token in srch_name:
+            res = re.search(token, rcrd.name.value, re.I)
+            if res:
+                row['id'] = address_book.get_record_id(rcrd.name.value)
+                name = (f'{rcrd.name.value[:res.start()]}'
+                        + f'[{token}]{rcrd.name.value[res.end():]}')
+                row['name'] = name
+                break
+
+        for token in srch_phon:
+            for phone in rcrd.phones:
+                res = re.search(token, phone.value)
+                if res:
+                    if row['id'] is None:
+                        row['name'] = rcrd.name.value
+                        row['id'] = (address_book
+                                     .get_record_id(rcrd.name.value))
+                    else:
+                        phone_num = (f'{phone.value[:res.start()]}'
+                                     + f'[{token}]{phone.value[res.end():]}')
+                        row['phones'].append(phone_num)
+                else:
+                    row['phones'].append(phone.value)
+
+        res_string = (f'Record ({row['id']}): {row['name']}, phones: '
+                      + f'{', '.join(row['phones'])}')
+
+        if '[' in res_string:
+            res_lst.append(res_string)
+
+    conditions = ', '.join(srch_name) + ' '
+    conditions += ', '.join(srch_phon)
+    if len(res_lst):
+        message += f'{len(res_lst)} result(s) for {conditions}.\n'
+        message += '\n'.join(res_lst)
+    else:
+        message += f'No results for {conditions}.\n'
+
+    return status, message
 
 
 def exit_():
@@ -317,7 +322,7 @@ def help(command=''):
 
 def parse_input(sequence=''):
     """Main part of input parser"""
-    command_pattern = r'^(hello|add|change|phone|show|exit|help|find)'
+    command_pattern = r'^(hello|add|change|show|exit|help|find)'
     command = ''
     args = ''
     if not sequence:
@@ -350,7 +355,7 @@ def main():
         'hello': {'func': hello, 'args': False},
         'add': {'func': add, 'args': True},
         'change': {'func': change, 'args': True},
-        'phone': {'func': phone, 'args': True},
+        # 'phone': {'func': phone, 'args': True},
         'show': {'func': show_all, 'args': True},
         'exit': {'func': exit_, 'args': False},
         'help': {'func': help, 'args': True},

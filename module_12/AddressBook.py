@@ -231,6 +231,12 @@ class AddressBook(UserDict):
         self.current_record_id = 0
         super().__init__()
 
+    def get_record_id(self, name):
+        if len(self.data) == 0:
+            raise IndexError('mentor_detected')
+        if name in self.data.keys():
+            return list(self.data.keys()).index(name)
+
     def get_current_record(self):
         if len(self.data) == 0:
             raise IndexError('mentor_detected')
