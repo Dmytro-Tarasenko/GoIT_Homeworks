@@ -145,7 +145,8 @@ def change(sequence=''):
             raise KeyError('!contact_exists')
         record.name = Name(names[1].capitalize())
         if len(names) > 2:
-            message += 'Warning: Only 2 names are taken into account.\n'
+            message += ('Warning:\n\tOnly 2 names are'
+                        + ' taken into account.\n')
 
     if len(phones) > 0:
         if len(phones) == 1:
@@ -172,16 +173,52 @@ def change(sequence=''):
             else:
                 record.birthday = Birthday(bdays[0])
             if len(bdays) > 1:
-                message += 'Warning: Only 1 birthday is used.'
+                message += 'Warning:\n\tOnly 1 birthday is used.'
 
     return status, message
 
 
 @input_error  # IndexError - empty
-def show_all(sequence='all'):
+def show(sequence=''):
     """Displays recorded contacts"""
     status = 'OK'
     message = ''
+
+    if not sequence:
+        return status, 'Nothing to show.'
+
+    # lim:N
+    lim_ptrn = r'\blim:\d+\b'
+    lim = re.findall(lim_ptrn, sequence)
+    if len(lim) > 1: # no more than 1 limit per "page"
+        raise ValueError('uncertain_show')
+    # <ind>
+    ind_ptrn = r'\b\d+\b'
+    inds = re.findall(ind_ptrn, sequence)
+    if len(inds) > 0 and len(lim) > 0: # limit and <ind> is nonsense
+        raise ValueError('uncertain_show')
+    #<start>-<end>
+    range_ptrn = r'\b\d+-\d+\b'
+    range_ = re.findall(range_ptrn, sequence)
+    if len(lim) > 0 and len(range_) > 1: # only 1 range per limit
+        raise ValueError('uncertain_show')
+    # easiest way to filter invalid input
+    if (len(lim) + len(inds) + len(range_)) == 0:
+        raise ValueError('uncertain_show')
+    header = (f'+{"=":=^5}+{"=":=^15}+{"=":=^15}+{"=":=^15}+\n'
+              + f'|{"ID":^5}|{"NAME":^15}|{"PHONES":^15}'
+              + '|{"BIRTHDAY":^15}|\n'
+              + f'+{"-":-^5}+{"-":-^15}+{"-":-^15}+{"-":-^15}+\n')
+    footer = f'+{"-":-^5}+{"-":-^15}+{"-":-^15}+{"-":-^15}+\n'
+    # Show by ind
+    rows = []
+    for ind in inds:
+        if int(ind) >= len(address_book.data):
+            raise IndexError('index_out')
+        rcrd = address_book.get_record_byid(int(ind))
+        rows.append()
+
+
 
     if sequence != 'all':
 
@@ -216,6 +253,9 @@ def find(sequence=''):
             res = re.search(token, rcrd.name.value, re.I)
             if res:
                 row['id'] = address_book.get_record_id(rcrd.name.value)
+                # name - Waldemar
+                # token - dem
+                # name - Wal[dem]ar
                 name = (f'{rcrd.name.value[:res.start()]}'
                         + f'[{token}]{rcrd.name.value[res.end():]}')
                 row['name'] = name
@@ -230,15 +270,19 @@ def find(sequence=''):
                         row['id'] = (address_book
                                      .get_record_id(rcrd.name.value))
                     else:
+                        # phone - 123456
+                        # token - 45
+                        # phone - 123[45]6
                         phone_num = (f'{phone.value[:res.start()]}'
                                      + f'[{token}]{phone.value[res.end():]}')
                         row['phones'].append(phone_num)
                 else:
+                    # just for representation
                     row['phones'].append(phone.value)
 
         res_string = (f'Record ({row['id']}): {row['name']}, phones: '
                       + f'{', '.join(row['phones'])}')
-
+        # got no [ == got no matches
         if '[' in res_string:
             res_lst.append(res_string)
 
@@ -326,8 +370,7 @@ def main():
         'hello': {'func': hello, 'args': False},
         'add': {'func': add, 'args': True},
         'change': {'func': change, 'args': True},
-        # 'phone': {'func': phone, 'args': True},
-        'show': {'func': show_all, 'args': True},
+        'show': {'func': show, 'args': True},
         'exit': {'func': exit_, 'args': False},
         'help': {'func': help, 'args': True},
         'find': {'func': find, 'args': True}
@@ -341,12 +384,12 @@ def main():
 
     info_message = ('Addressbook is loaded '
                     + f'({len(address_book.data)} records)')\
-        if len(address_book.data) > 0 \
-        else 'Addressbook is created (0 records)'
+                    if len(address_book.data) > 0 \
+                    else 'Addressbook is created (0 records)'
     current_record = (f'Current record [{address_book.current_record_id}'
                       + f']: {str(address_book.get_current_record())}')\
-        if len(address_book.data) > 0 \
-        else 'There is no records yet in addressbook.'
+                      if len(address_book.data) > 0 \
+                      else 'There is no records yet in addressbook.'
     commands_line = 'Commands: ' + ' | '.join(commands.keys())
 
     while loop:
@@ -367,9 +410,11 @@ def main():
             print(message)
         else:
             print(message)
-        info_message = f'Address book`s got {len(address_book.data)} record(s).'
-        current_record = (f'Current record [{address_book.current_record_id}'
-                          + f']: {str(address_book.get_current_record())}') \
+        info_message = (f'Address book`s got {len(address_book.data)}'
+                        + ' record(s).')
+        current_record = ('Current record ['
+                          + f'{address_book.current_record_id}]: '
+                          + f'{str(address_book.get_current_record())}')\
             if len(address_book.data) > 0 \
             else 'There is no records yet in addressbook.'
 

@@ -16,10 +16,11 @@ helpmsg = {
              + '\tlim:N - set the limitation of N records to display'
              + ' at once.\nPress "Enter" to proceed "C"  to abort.\n'
              + '\t<ind> - index of record in addressbook to display.\n'
+             + '\tMultiple <ind> can be processed.\n'
              + '\t<ind_start>-<ind_end> - display records'
              + ' from <ind_start> to <ind_end>.\n'
              + '\tIt`s possible to combine lim:N and'
-             + ' <ind_start>-<ind_end>\n====='),
+             + ' <ind_start>-<ind_end>(only 1 range)\n====='),
     'hello': 'hello\n Shows greeting message.\n=====',
     'change': ('change [<old_name>] <new_name> [<old_phone> <new_phone>]'
                + '[<new_birthday>]\n'
@@ -60,5 +61,7 @@ errormsg = {
     '!contact_exists': 'Contact does not exist. Try another name.',
     'params_absense': 'No needed parameter(s) was(were) provided.',
     'not_enough_phones': 'Unable to determine phone to change.',
-    'bad_search_cond': 'Bad search condition were provided.'
+    'bad_search_cond': 'Bad search condition were provided.',
+    'uncertain_show': 'Unable to determine condition for <show>.',
+    'index_out': 'Given index is out of range.'
 }
