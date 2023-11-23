@@ -178,10 +178,14 @@ def change(sequence=''):
 
 
 @input_error  # IndexError - empty
-def show_all(record='all'):
+def show_all(sequence='all'):
     """Displays recorded contacts"""
     status = 'OK'
     message = ''
+
+    if sequence != 'all':
+
+    else:
 
     return status, message
 
@@ -279,16 +283,10 @@ def help(command=''):
         message += '<command> [<parameters>]\n'
         message += ('Bot provides a storage for contacts.'
                     + ' Common operations such as adding, changing,\n'
-                    + ' showing contact`s info etc are supported.\n'
+                    + 'showing contact`s info etc are supported.\n'
                     + 'List of available commands: hello, add,'
                     + ' change, show, exit, find, help.\n'
-                    + 'Type "help <command> for details')
-
-        case :
-            message += f'{cmd_} <command>\n'
-            message += ('Displays help info for <command>\n'
-                        + 'List of available commands: hello, add,'
-                        + ' change, phone, show, exit, help, find.\n')
+                    + 'Type "help <command> for details\n====')
 
     return status, message
 

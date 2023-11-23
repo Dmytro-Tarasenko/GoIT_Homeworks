@@ -3,32 +3,37 @@ helpmsg = {
             + '<birthday>]\n'
             + 'Adds  contact with name <contact_name>,'
             + 'phone number <phone_number>  to contact base.\n'
-            + '<contact_name> contains only one word and'
-            + ' <phone_number> - only digits,'
-            + ' phones with 6, 7, 10 or 12 digits are acceptable;'
-            + ' <birthday> should be in format yyyy-mm-dd or dd-mm-yyyy'
+            + '\t<contact_name> contains only one word;\n'
+            + '\t<phone_number> - only digits,'
+            + ' phones with 6, 7, 10 or 12 digits are acceptable;\n'
+            + '\t<birthday> should be in format yyyy-mm-dd or dd-mm-yyyy'
             + 'common separator are allowed [.,/\\].\n'
             + 'If no <contact_name> is provided'
-            + ' all data goes to current record'),
-    'exit': 'exit\n Prints farewell message, saves data and exits',
-    'show': ('show [lim:N, <ind>, <ind_start>-<ind_end>]'
+            + ' all data goes to current record\n====='),
+    'exit': 'exit\n Prints farewell message, saves data and exits\n=====',
+    'show': ('show [lim:N, <ind>, <ind_start>-<ind_end>]\n'
              + 'Shows recorded contacts in addressbook.\n'
-             + 'lim:N - set the limitation of N records to display'
-             + ' at once.\n Press "Enter" to proceed "C"  to abort.'
-             + '<ind> - index of record in addressbook to display.\n'
-             + '<ind_start>-<ind_end> - display records'
-             + ' from <ind_start> to <ind_end>.'),
-    'hello': 'hello\n Shows greeting message.',
+             + '\tlim:N - set the limitation of N records to display'
+             + ' at once.\nPress "Enter" to proceed "C"  to abort.\n'
+             + '\t<ind> - index of record in addressbook to display.\n'
+             + '\t<ind_start>-<ind_end> - display records'
+             + ' from <ind_start> to <ind_end>.\n'
+             + '\tIt`s possible to combine lim:N and'
+             + ' <ind_start>-<ind_end>\n====='),
+    'hello': 'hello\n Shows greeting message.\n=====',
     'change': ('change [<old_name>] <new_name> [<old_phone> <new_phone>]'
                + '[<new_birthday>]\n'
                + 'Changes data of record <old_name> to provided new ones.\n'
-               + '<old_name> - is the name for record which data needs to'
-               + ' be changed. If not specified current record is used.\n'
-               + '<old_phone> <new_phone> - pairs of numbers to change.\n'
-               + 'It`s possible to omit <old_phone> if there is only one'
-               + ' number in record.\n'
-               + '<new_birthday> - new date of birthday.'),
-    'help': ('help [<command>]\n')
+               + '\t<old_name> - is the name for record which data needs to'
+               + ' be changed. If not specified\ncurrent record is used.\n'
+               + '\t<old_phone> <new_phone> - pairs of numbers to change.\n'
+               + '\t\tIt`s possible to omit <old_phone> if there is only'
+               + ' one number in record.\n'
+               + '\t<new_birthday> - new date of birthday.\n====='),
+    'help': ('help [<command>]\n'
+             + 'Displays help info for <command>\n'
+             + '\tList of available commands: hello, add,'
+             + ' change, phone, show, exit, help, find.\n=====')
 }
 
 errormsg = {

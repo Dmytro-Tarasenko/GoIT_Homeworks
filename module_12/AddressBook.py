@@ -267,9 +267,15 @@ class AddressBook(UserDict):
                 if id_ > 0 else 0
             self.data.pop(name)
 
-    def iterator(self, pg_lim):
-        for ind in range(0, len(self.data), pg_lim):
-            self.current_record_id = ind + pg_lim\
-                if (ind + pg_lim) < len(self.data)\
+    def iterator(self, start=0, end=0, lim=1):
+        if end == 0:
+            end = len(self.data)
+        for ind in range(start, end, lim):
+            self.current_record_id = ind + lim\
+                if (ind + lim) < len(self.data)\
                 else len(self.data) - 1
-            yield list(self.data.values())[ind:ind+pg_lim]
+            yield list(self.data.values())[ind:ind+lim]
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.current_record_id = 0
