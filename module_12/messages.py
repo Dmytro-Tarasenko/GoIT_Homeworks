@@ -63,5 +63,5 @@ errormsg = {
     'not_enough_phones': 'Unable to determine phone to change.',
     'bad_search_cond': 'Bad search condition were provided.',
     'uncertain_show': 'Unable to determine condition for <show>.',
-    'index_out': 'Given index is out of range.'
+    'index_error': 'Given indexes are invalid.'
 }

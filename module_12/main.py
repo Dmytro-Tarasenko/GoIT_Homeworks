@@ -71,9 +71,6 @@ def input_error(handler):
 
     return inner
 
-#
-# CUTTED
-#
 
 def tokenize_args(sequence=''):
     names = []
@@ -184,45 +181,119 @@ def show(sequence=''):
     status = 'OK'
     message = ''
 
-    if not sequence:
-        return status, 'Nothing to show.'
-
     # lim:N
     lim_ptrn = r'\blim:\d+\b'
     lim = re.findall(lim_ptrn, sequence)
-    if len(lim) > 1: # no more than 1 limit per "page"
+    if len(lim) > 1:  # no more than 1 limit
         raise ValueError('uncertain_show')
-    # <ind>
-    ind_ptrn = r'\b\d+\b'
-    inds = re.findall(ind_ptrn, sequence)
-    if len(inds) > 0 and len(lim) > 0: # limit and <ind> is nonsense
-        raise ValueError('uncertain_show')
-    #<start>-<end>
+
+    # <start>-<end>
     range_ptrn = r'\b\d+-\d+\b'
     range_ = re.findall(range_ptrn, sequence)
-    if len(lim) > 0 and len(range_) > 1: # only 1 range per limit
+    if len(lim) > 0 and len(range_) > 1:  # only 1 range per limit
         raise ValueError('uncertain_show')
+    # ranges need to be poped to avoid index conflict
+    sequence = re.sub(range_ptrn, '', sequence)
+
+    # <ind>
+    ind_ptrn = r'\b[^:]\d+\b'
+    inds = re.findall(ind_ptrn, sequence)
+    if len(inds) > 0 and len(lim) > 0:  # limit and <ind> is nonsense
+        raise ValueError('uncertain_show')
+
     # easiest way to filter invalid input
-    if (len(lim) + len(inds) + len(range_)) == 0:
+    if (len(lim) + len(inds) + len(range_)) == 0\
+            and len(sequence) > 0:
         raise ValueError('uncertain_show')
-    header = (f'+{"=":=^5}+{"=":=^15}+{"=":=^15}+{"=":=^15}+\n'
+
+    # no params = show from 0 to len()
+    # only lim is set: lim + range_ 0 to len()
+    if len(sequence) == 0 or (len(lim) == 1 and len(range_) == 0):
+        range_ = [f'0-{len(address_book.data)}']
+
+    header = (f'+{"=":=^5}+{"=":=^15}+{"=":=^15}+'
+              + f'{"=":=^15}+{"=":=^12}+\n'
               + f'|{"ID":^5}|{"NAME":^15}|{"PHONES":^15}'
-              + '|{"BIRTHDAY":^15}|\n'
-              + f'+{"-":-^5}+{"-":-^15}+{"-":-^15}+{"-":-^15}+\n')
-    footer = f'+{"-":-^5}+{"-":-^15}+{"-":-^15}+{"-":-^15}+\n'
+              + f'|{"BIRTHDAY":^15}|{"DAYS TO BD":^12}|\n'
+              + f'+{"=":=^5}+{"=":=^15}+{"=":=^15}+'
+              + f'{"=":=^15}+{"=":=^12}+\n')
+    footer = (f'+{"-":-^5}+{"-":-^15}+{"-":-^15}'
+              + f'+{"-":-^15}+{"-":-^12}+\n')
+
+    # Returns row from record:
+    # id 23 Name Vasyl, phones 1234567, 2345678, 3456789,
+    # bday 2000-01-01, days to BD 45
+    #    5        15          15          15            12
+    # | 23  |   Vasyl   |  1234567  |  2000-01-01   |   45    |
+    # |     |           |  2345678  |               |         |
+    # |     |           |  3456789  |               |         |
+    # +-----+-----------+-----------+---------------+---------+
+    def make_row(record: Record, ind=None):
+        name = record.name.value
+
+        if ind is None:
+            ind = address_book.get_record_id(name)
+
+        if record.birthday.value is None:
+            bday = days2bd = '-'
+        else:
+            bday = record.birthday.value
+            days2bd = record.days_to_birthday()
+        if len(record.phones) == 0:
+            phone_0 = '-'
+        elif len(record.phones) >= 1:
+            phone_0 = record.phones[0].value
+        #    5        15          15          15            12
+        row = (f'|{ind:^5}|{name:<15}|{phone_0:^15}|'
+               + f'{str(bday):^15}|{days2bd:^12}|\n')
+        for i in range(1, len(record.phones)):
+            row += (f'|{" ":^5}|{"":^15}|{record.phones[i].value:^15}'
+                    + f'|{" ":^15}|{" ":12}|\n')
+        row += footer
+        return row
+
     # Show by ind
     rows = []
     for ind in inds:
         if int(ind) >= len(address_book.data):
-            raise IndexError('index_out')
+            raise IndexError('index_error')
         rcrd = address_book.get_record_byid(int(ind))
-        rows.append()
+        rows.append(make_row(rcrd, ind))
 
+    # lim[0] = 'lim:3' -> lim = 3
+    lim = int(lim[0].split(':')[1]) if len(lim) == 1 else 0
 
-
-    if sequence != 'all':
-
+    # show by range
+    # decorator???
+    if lim == 0:
+        for chunk in range_:
+            start = int(chunk.split('-')[0])
+            end = int(chunk.split('-')[1])
+            end = end if end <= len(address_book.data)\
+                else len(address_book.data)
+            if start >= end:
+                raise IndexError('index_error')
+            for i in range(start, end):
+                rcrd = address_book.get_record_byid(i)
+                rows.append(make_row(rcrd, i))
     else:
+        start = int(range_[0].split('-')[0])
+        end = int(range_[0].split('-')[1])
+        for chunk in address_book.iterator(start, end, lim):
+            out = header
+            for rcrd in chunk:
+                out += make_row(rcrd)
+            print(out)
+            _ = input('Enter to proceed, "c" for cancel:')
+            if _.lower() == 'c':
+                message = 'Canceled by user.'
+                break
+        return status, message
+
+    if len(rows) > 0:
+        message += header
+        for row in rows:
+            message += row
 
     return status, message
 
@@ -236,10 +307,8 @@ def find(sequence=''):
 
     name_part = r'\b[a-z]{2,}\b'
     phone_part = r'\b\d{2,}\b'
-    srch_name = [i for i in sequence.split()
-                        if re.search(name_part, i)]
-    srch_phon = [i for i in sequence.split()
-                        if re.search(phone_part, i)]
+    srch_name = [i for i in sequence.split() if re.search(name_part, i)]
+    srch_phon = [i for i in sequence.split() if re.search(phone_part, i)]
     if len(sequence.split()) != len(srch_phon) + len(srch_name):
         message += 'Warning: Some invalid search pattern were removed.\n'
     if len(srch_name) == 0 and len(srch_phon) == 0:
@@ -279,8 +348,8 @@ def find(sequence=''):
                 else:
                     # just for representation
                     row['phones'].append(phone.value)
-
-        res_string = (f'Record ({row['id']}): {row['name']}, phones: '
+        # |  5  | 17 |
+        res_string = (f'Record id({row['id']}): {row['name']}, phones: '
                       + f'{', '.join(row['phones'])}')
         # got no [ == got no matches
         if '[' in res_string:
@@ -289,8 +358,8 @@ def find(sequence=''):
     conditions = ', '.join(srch_name) + ' '
     conditions += ', '.join(srch_phon)
     if len(res_lst):
-        message += f'{len(res_lst)} result(s) for {conditions}.\n'
-        message += '\n'.join(res_lst)
+        message += f'{len(res_lst)} result(s) for {conditions}.\n\n'
+        message += '\n'.join(res_lst) + '\n'
     else:
         message += f'No results for {conditions}.\n'
 
@@ -358,9 +427,10 @@ def read_from_file(path: Path):
     with path.open('rb') as fin:
         try:
             data = pickle.load(fin)
-        except Exception as er:
+        except Exception:
             data = None
     return data
+
 
 def main():
     global address_book
@@ -384,12 +454,12 @@ def main():
 
     info_message = ('Addressbook is loaded '
                     + f'({len(address_book.data)} records)')\
-                    if len(address_book.data) > 0 \
-                    else 'Addressbook is created (0 records)'
+        if len(address_book.data) > 0\
+        else 'Addressbook is created (0 records)'
     current_record = (f'Current record [{address_book.current_record_id}'
                       + f']: {str(address_book.get_current_record())}')\
-                      if len(address_book.data) > 0 \
-                      else 'There is no records yet in addressbook.'
+        if len(address_book.data) > 0 \
+        else 'There is no records yet in addressbook.'
     commands_line = 'Commands: ' + ' | '.join(commands.keys())
 
     while loop:

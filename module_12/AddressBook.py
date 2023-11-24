@@ -226,6 +226,7 @@ class Record:
                             cur_bday.day)
         return (cur_bday - date.today()).days
 
+
 class AddressBook(UserDict):
     def __init__(self):
         self.current_record_id = 0
@@ -235,7 +236,9 @@ class AddressBook(UserDict):
         if len(self.data) == 0:
             raise IndexError('mentor_detected')
         if name in self.data.keys():
-            return list(self.data.keys()).index(name)
+            id_ = list(self.data.keys()).index(name)
+            self.current_record_id = id_
+            return id_
 
     def get_current_record(self):
         if len(self.data) == 0:
@@ -247,6 +250,9 @@ class AddressBook(UserDict):
         record_key = list(self.data.keys())[id_]\
             if id_ < len(self.data)\
             else len(self.data) - 1
+        self.current_record_id = id_\
+            if id_ < len(self.data)\
+            else self.current_record_id
         return self.data[record_key]
 
     def add_record(self, record):
