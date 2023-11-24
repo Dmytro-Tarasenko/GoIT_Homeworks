@@ -11,4 +11,4 @@ data.bin - містить згенеровані 12 контактів та 1 д
 Для генерації можна використовувати generator.py
 Кількість згенерованих записів залежиьт від 
 pag_lim та pgs та дорівнює 
-тгь_кусщкві = pag_lim * pgs + random.randrange(0, pag_lim)
+num_records = pag_lim * pgs + random.randrange(0, pag_lim)
