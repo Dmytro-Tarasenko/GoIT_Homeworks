@@ -253,13 +253,19 @@ def show(sequence=''):
         row += footer
         return row
 
+    buffer = [int(i) for i in inds]
+    for chunk in range_:
+        start = int(chunk.split('-')[0])
+        end = int(chunk.split('-')[1])
+        end = end if end <= len(address_book.data) \
+            else len(address_book.data)
+        buffer.extend(range(start, end))
+    inds = [None for _ in range(len(address_book.data))]
+    for ind_ in buffer:
+        inds[ind_] = ind_
+
     # Show by ind
     rows = []
-    for ind in inds:
-        if int(ind) >= len(address_book.data):
-            raise IndexError('index_error')
-        rcrd = address_book.get_record_byid(int(ind))
-        rows.append(make_row(rcrd, ind))
 
     # lim[0] = 'lim:3' -> lim = 3
     lim = int(lim[0].split(':')[1]) if len(lim) == 1 else 0
@@ -267,16 +273,10 @@ def show(sequence=''):
     # show by range
     # decorator???
     if lim == 0:
-        for chunk in range_:
-            start = int(chunk.split('-')[0])
-            end = int(chunk.split('-')[1])
-            end = end if end <= len(address_book.data)\
-                else len(address_book.data)
-            if start >= end:
-                raise IndexError('index_error')
-            for i in range(start, end):
-                rcrd = address_book.get_record_byid(i)
-                rows.append(make_row(rcrd, i))
+        for ind in inds:
+            if ind:
+                rcrd = address_book.get_record_byid(ind)
+                rows.append(make_row(rcrd, ind))
     else:
         start = int(range_[0].split('-')[0])
         end = int(range_[0].split('-')[1])
