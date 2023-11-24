@@ -184,6 +184,7 @@ def show(sequence=''):
     # lim:N
     lim_ptrn = r'\blim:\d+\b'
     lim = re.findall(lim_ptrn, sequence)
+    sequence = re.sub(lim_ptrn, '', sequence)
     if len(lim) > 1:  # no more than 1 limit
         raise ValueError('uncertain_show')
 
@@ -196,7 +197,7 @@ def show(sequence=''):
     sequence = re.sub(range_ptrn, '', sequence)
 
     # <ind>
-    ind_ptrn = r'\b[^:]\d+\b'
+    ind_ptrn = r'\b\d+\b'
     inds = re.findall(ind_ptrn, sequence)
     if len(inds) > 0 and len(lim) > 0:  # limit and <ind> is nonsense
         raise ValueError('uncertain_show')
