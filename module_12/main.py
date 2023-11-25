@@ -350,8 +350,8 @@ def find(sequence=''):
                     # just for representation
                     row['phones'].append(phone.value)
         # |  5  | 17 |
-        res_string = (f'Record id({row['id']}): {row['name']}, phones: '
-                      + f'{', '.join(row['phones'])}')
+        res_string = (f'Record id({row["id"]}): {row["name"]}, phones: '
+                      + f'{', '.join(row["phones"])}')
         # got no [ == got no matches
         if '[' in res_string:
             res_lst.append(res_string)
