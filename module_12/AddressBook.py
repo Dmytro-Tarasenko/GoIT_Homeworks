@@ -148,7 +148,7 @@ class Record:
             return True
         if isinstance(phone, str):
             phone = self.prep_phone(phone)
-            _number_pattern = r'^(\d{12}|\d{10}|\d{7}|\d{6})$'
+            _number_pattern = r'^\d{6,12}$'
             if not re.match(_number_pattern, phone):
                 return False
             return True
