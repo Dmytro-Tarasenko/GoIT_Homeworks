@@ -105,6 +105,8 @@ def add(sequence=''):
         if not record:
             address_book.add_record(Record(names[0].capitalize()))
             record = address_book.find(names[0].capitalize())
+            if len(phones) == 0 and len(bdays) == 0:
+                return status, message
         if len(names) > 1:
             message += ('Warning: Only 1 name can be in add command.'
                         + ' To edit name use <change> command instead.\n')
