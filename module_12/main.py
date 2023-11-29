@@ -35,7 +35,7 @@ BDAY_PATTERN = (r'\b(?:(\d{4}[\-,\.\\/]\d{2}[\-,\.\\/]\d{2})|'
 PHONE_PATTERN = r'\b\d{12}|\d{10}|\d{7}|\d{6}|\b'
 NAME_PATTERN = r'\b[a-zA-Z]+[\w\.\,]+\b'
 
-address_book = None
+address_book = AddressBook()
 loop = True  # Exit controller
 
 
@@ -108,6 +108,11 @@ def add(sequence=''):
         if len(names) > 1:
             message += ('Warning: Only 1 name can be in add command.'
                         + ' To edit name use <change> command instead.\n')
+        if len(names) == 1 and len(phones) == 0 and len(bdays) == 0:
+            message += ('There is nothing to add to existing'
+                        + f' {record.name.value} contact.\n'
+                        + 'Try another name or add some information.')
+            return 'Warning', message
     if len(bdays) > 0:
         if record.birthday is None:
             record.birthday = bdays[0]
@@ -134,13 +139,21 @@ def change(sequence=''):
 
     if len(names) <= 1:
         record = address_book.get_current_record()
+        old_name = record.name.value
         if len(names) == 1:
-            record.name = Name(names[0].capitalize())
+            new_name = names[0].capitalize()
+            record.name = Name(new_name)
+            address_book.data[new_name] = address_book.data.pop(old_name)
+            address_book.current_record_id = len(address_book.data) - 1
     elif len(names) >= 2:
         record = address_book.find(names[0].capitalize())
+        old_name = record.name.value
         if record is None:
             raise KeyError('!contact_exists')
-        record.name = Name(names[1].capitalize())
+        new_name = names[1].capitalize()
+        record.name = Name(new_name)
+        address_book.data[new_name] = address_book.data.pop(old_name)
+        address_book.current_record_id = len(address_book.data) - 1
         if len(names) > 2:
             message += ('Warning:\n\tOnly 2 names are'
                         + ' taken into account.\n')
@@ -180,6 +193,7 @@ def show(sequence=''):
     """Displays recorded contacts"""
     status = 'OK'
     message = ''
+    start_len = len(sequence)
 
     # lim:N
     lim_ptrn = r'\blim:\d+\b'
@@ -209,7 +223,7 @@ def show(sequence=''):
 
     # no params = show from 0 to len()
     # only lim is set: lim + range_ 0 to len()
-    if len(sequence) == 0 or (len(lim) == 1 and len(range_) == 0):
+    if start_len == 0 or (len(lim) == 1 and len(range_) == 0):
         range_ = [f'0-{len(address_book.data)}']
 
     header = (f'+{"=":=^5}+{"=":=^15}+{"=":=^15}+'
@@ -235,7 +249,7 @@ def show(sequence=''):
         if ind is None:
             ind = address_book.get_record_id(name)
 
-        if record.birthday.value is None:
+        if record.birthday is None:
             bday = days2bd = '-'
         else:
             bday = record.birthday.value
@@ -274,7 +288,7 @@ def show(sequence=''):
     # decorator???
     if lim == 0:
         for ind in inds:
-            if ind:
+            if ind is not None:
                 rcrd = address_book.get_record_byid(ind)
                 rows.append(make_row(rcrd, ind))
     else:
@@ -306,63 +320,57 @@ def find(sequence=''):
     message = ''
     res_lst = []
 
-    name_part = r'\b[a-z]{2,}\b'
-    phone_part = r'\b\d{2,}\b'
-    srch_name = [i for i in sequence.split() if re.search(name_part, i)]
-    srch_phon = [i for i in sequence.split() if re.search(phone_part, i)]
-    if len(sequence.split()) != len(srch_phon) + len(srch_name):
-        message += 'Warning: Some invalid search pattern were removed.\n'
-    if len(srch_name) == 0 and len(srch_phon) == 0:
-        raise ValueError('bad_search_cond')
+    sequence = sequence.lower()
+    token_pattern = r'\b[a-z]{2,}\b|\b\d{2,}\b'
 
-    for rcrd in address_book.data.values():
+    # перелік усіх валідних умов пошуку
+    token_list = re.findall(token_pattern, sequence)
+    # єдиний пошуковий паттерн
+    search_pattern = rf'{"|".join(token_list)}'
 
-        row = {'name': '', 'id': None, 'phones': []}
-
-        for token in srch_name:
-            res = re.search(token, rcrd.name.value, re.I)
-            if res:
-                row['id'] = address_book.get_record_id(rcrd.name.value)
-                # name - Waldemar
-                # token - dem
-                # name - Wal[dem]ar
-                name = (f'{rcrd.name.value[:res.start()]}'
-                        + f'[{token}]{rcrd.name.value[res.end():]}')
-                row['name'] = name
-                break
-
-        for token in srch_phon:
-            for phone in rcrd.phones:
-                res = re.search(token, phone.value)
-                if res:
-                    if row['id'] is None:
-                        row['name'] = rcrd.name.value
-                        row['id'] = (address_book
-                                     .get_record_id(rcrd.name.value))
-                    else:
-                        # phone - 123456
-                        # token - 45
-                        # phone - 123[45]6
-                        phone_num = (f'{phone.value[:res.start()]}'
-                                     + f'[{token}]{phone.value[res.end():]}')
-                        row['phones'].append(phone_num)
-                else:
-                    # just for representation
-                    row['phones'].append(phone.value)
-        # |  5  | 17 |
-        res_string = (f'Record id({row["id"]}): {row["name"]}, phones: '
-                      + f'{', '.join(row["phones"])}')
-        # got no [ == got no matches
+    for ind, name in enumerate(address_book.data):
+        # search_sting = 'Name::phone1#phone2#phone3::Birthday
+        search_string = (address_book
+                         .find(name)
+                         .as_search_string().lower())
+        res_string = re.sub(search_pattern,
+                            lambda x: f'[{x.group()}]',
+                            search_string)
+        # res_string Id::N[ame]::phone1#phon[e2]#phone3::Birthday
+        res_string = f'{ind}::' + res_string
         if '[' in res_string:
             res_lst.append(res_string)
 
-    conditions = ', '.join(srch_name) + ' '
-    conditions += ', '.join(srch_phon)
-    if len(res_lst):
-        message += f'{len(res_lst)} result(s) for {conditions}.\n\n'
-        message += '\n'.join(res_lst) + '\n'
-    else:
-        message += f'No results for {conditions}.\n'
+    if len(res_lst) == 0:
+        message += ('There were no results for'
+                    + f' {search_pattern.replace("|", " | ")}.')
+        return status, message
+
+    header = (f'+{"=":=^5}+{"=":=^17}+{"=":=^17}+{"=":=^12}+\n'
+              + f'|{"ID":^5}|{"NAME":^17}|'
+              + f'{"PHONES":^17}|{"BIRTHDAY":^12}|\n')
+    footer = f'+{"-":-^5}+{"-":-^17}+{"-":-^17}+{"-":-^12}+\n'
+
+    rows = ''
+    # row Id::N[ame]::phone1#phon[e2]#phone3::Birthday
+    # | 23  |  V[asy]l  |  1234567  |  2000-01-01   |
+    # |     |           | 23[4567]8 |               |
+    # |     |           |  3456789  |               |
+    # +-----+-----------+-----------+---------------+
+    for row in res_lst:
+        id_, name_, phones_, bday_ = row.split('::')
+        phones_ = phones_.split('#')
+        phone0 = '-' if len(phones_) == 0 else phones_[0]
+        # bday_ = bday_ if bday_ != 'none' else '-'
+        rows += (f'|{id_:^5}|{name_.capitalize():^17}|'
+                 + f'{phone0:^17}|{bday_:^12}|\n')
+        for phone in phones_[1:]:
+            rows += f'|{"":<5}|{"":<17}|{phone:^17}|{"":^12}|\n'
+        rows += footer
+
+    message += (f'There are {len(res_lst)} results'
+                + f' for {search_pattern.replace("|", " | ")}:\n')
+    message += header + footer + rows
 
     return status, message
 
@@ -417,6 +425,11 @@ def parse_input(sequence=''):
     if match_res:
         command = match_res.group()
         args = sequence[match_res.span()[1]:].lstrip()
+    elif address_book.find(sequence.split()[0].capitalize()):
+        command = 'show'
+        rcrd = address_book.find(sequence.split()[0].capitalize())
+        ind = address_book.get_record_id(rcrd.name.value)
+        args = str(ind)
     else:
         command = 'help'
         args = ''

@@ -159,6 +159,12 @@ class Record:
                + f' birthday: {self.birthday}')
         return ret
 
+    def as_search_string(self):
+        ret = (f'{self.name.value}::'
+               + f'{"#".join(p.value for p in self.phones)}::'
+               + f'{self.birthday.value if self.birthday else "-"}')
+        return ret
+
     def add_phone(self, phone):
         if not self.is_valid_phone(phone):
             raise ValueError('wrong_number')
@@ -260,7 +266,7 @@ class AddressBook(UserDict):
         name = record.name.value
         self.current_record_id = list(self.data.keys()).index(name)
 
-    def find(self, name):
+    def find(self, name) -> Record:
         if name in self.data.keys():
             self.current_record_id = list(self.data.keys()).index(name)
             return self.data.get(name)
